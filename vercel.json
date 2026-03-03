@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "Etsy-WebApp/api/generate.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/Etsy-WebApp/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/Etsy-WebApp/public/$1"
+    }
+  ]
+}

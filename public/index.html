@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etsy 文案助手</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-pen-nib"></i> Etsy 文案助手</h1>
+            <p class="subtitle">基于 AI 的 Etsy SEO 文案生成器</p>
+        </header>
+
+        <main>
+            <!-- 模式选择 -->
+            <section class="mode-selector">
+                <button id="mode-csv" class="mode-btn active">
+                    <i class="fas fa-file-csv"></i> CSV 批量生成
+                </button>
+                <button id="mode-manual" class="mode-btn">
+                    <i class="fas fa-keyboard"></i> 手动输入
+                </button>
+            </section>
+
+            <!-- CSV 上传区域 -->
+            <section id="csv-section" class="content-section">
+                <div class="upload-area" id="drop-zone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>点击或拖拽上传 CSV 文件</p>
+                    <input type="file" id="csv-input" accept=".csv" hidden>
+                    <small>模板下载：<a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
+                </div>
+                <div id="csv-preview" class="preview-area hidden">
+                    <h3>已选择文件：<span id="file-name"></span></h3>
+                    <div id="product-list"></div>
+                </div>
+            </section>
+
+            <!-- 手动输入区域 -->
+            <section id="manual-section" class="content-section hidden">
+                <form id="manual-form">
+                    <div class="form-group">
+                        <label>产品名称 *</label>
+                        <input type="text" id="manual-name" placeholder="例如：Lucky Knot Bracelet" required>
+                    </div>
+                    <div class="form-group">
+                        <label>关键词/描述</label>
+                        <input type="text" id="manual-keywords" placeholder="例如：bohemian jewelry gift for her">
+                    </div>
+                    <div class="form-group">
+                        <label>材质</label>
+                        <input type="text" id="manual-material" placeholder="例如：leather">
+                    </div>
+                    <div class="form-group">
+                        <label>尺寸</label>
+                        <input type="text" id="manual-size" placeholder="例如：adjustable">
+                    </div>
+                    <div class="form-group">
+                        <label>颜色</label>
+                        <input type="text" id="manual-color" placeholder="例如：brown">
+                    </div>
+                    <div class="form-group">
+                        <label>适用场景</label>
+                        <input type="text" id="manual-occasion" placeholder="例如：birthday, christmas">
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-magic"></i> 生成文案
+                    </button>
+                </form>
+            </section>
+
+            <!-- 生成按钮（CSV模式） -->
+            <section id="generate-section" class="hidden">
+                <button id="generate-all" class="generate-btn">
+                    <i class="fas fa-bolt"></i> 生成全部文案 (<span id="product-count">0</span>)
+                </button>
+            </section>
+
+            <!-- 加载状态 -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>AI 正在创作中，请稍候...</p>
+            </div>
+
+            <!-- 结果展示 -->
+            <section id="result-section" class="hidden">
+                <div class="result-header">
+                    <h2>生成结果</h2>
+                    <button id="back-btn" class="back-btn"><i class="fas fa-arrow-left"></i> 返回</button>
+                </div>
+                <div id="result-content"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by DashScope · 文案生成器</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
