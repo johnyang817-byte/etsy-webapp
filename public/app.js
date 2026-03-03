@@ -1,4 +1,4 @@
-// public/app.js - 最终修复版，全局点击监听
+// public/app.js - 最终修复版，强制提高按钮层级
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== App Starting ===');
   
@@ -53,30 +53,74 @@ document.addEventListener('DOMContentLoaded', function() {
         clearResults();
     }
   
-    // ============== 关键：全局点击监听 ==============
-    console.log('👀 Setting up global click listener...');
+    // ============== 关键：查找按钮并强制提升层级 ==============
+    console.log('🔍 Looking for generate button...');
   
-    // 监听所有点击事件
-    document.addEventListener('click', async (e) => {
-        // 检查点击目标是否是"生成文案"按钮
-        const target = e.target;
-        const isButton = target.tagName === 'BUTTON' && 
-                         (target.textContent.includes('生成文案') || 
-                          target.classList.contains('submit-btn') ||
-                          target.closest('button[type="submit"]'));
+    let generateButton = null;
+  
+    // 方法1：通过表单查找
+    const manualForm = document.getElementById('manual-form');
+    if (manualForm) {
+        generateButton = manualForm.querySelector('button[type="submit"]');
+        console.log('Found button via form:', generateButton);
+    }
+  
+    // 方法2：通过类名查找
+    if (!generateButton) {
+        generateButton = document.querySelector('.submit-btn');
+        console.log('Found button via class:', generateButton);
+    }
+  
+    // 方法3：通过文本内容查找
+    if (!generateButton) {
+        const allButtons = document.querySelectorAll('button');
+        allButtons.forEach(btn => {
+            if (btn.textContent.includes('生成文案')) {
+                generateButton = btn;
+                console.log('Found button by text:', btn);
+            }
+        });
+    }
+  
+    if (generateButton) {
+        console.log('🔘 Button found, enhancing clickability...');
       
-        if (isButton) {
-            console.log('🔥 GLOBAL CLICK CAPTURED! Target:', target);
-            console.log('📍 Clicked at:', e.clientX, e.clientY);
-          
-            // 防止事件冒泡和默认行为
+        // 强制提升按钮的视觉和交互层级
+        generateButton.style.outline = '3px solid red';
+        generateButton.style.outlineOffset = '2px';
+        generateButton.style.position = 'relative';
+        generateButton.style.zIndex = '999999';
+        generateButton.style.pointerEvents = 'auto'; // 确保可点击
+        generateButton.style.cursor = 'pointer';
+      
+        // 绑定点击事件
+        generateButton.addEventListener('click', async (e) => {
+            console.log('🔘 BUTTON CLICKED!');
             e.preventDefault();
             e.stopPropagation();
-          
-            // 触发生成
             await handleManualGenerate();
-        }
-    }, true); // 使用捕获阶段，确保能捕获到事件
+        });
+      
+        console.log('✅ Button enhanced and listener attached');
+    } else {
+        console.error('❌ CRITICAL: No generate button found!');
+        createDebugButton();
+    }
+  
+    // 如果找不到按钮，创建一个调试按钮
+    function createDebugButton() {
+        console.log('🛠️ Creating debug button...');
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = '调试生成';
+        debugBtn.id = 'debug-generate-btn';
+        debugBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999999;background:red;color:white;padding:15px;font-size:16px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        debugBtn.addEventListener('click', async () => {
+            console.log('🐛 Debug button clicked');
+            await handleManualGenerate();
+        });
+        document.body.appendChild(debugBtn);
+        console.log('✅ Debug button created and added to page');
+    }
   
     // ============== 处理手动生成 ==============
     async function handleManualGenerate() {
