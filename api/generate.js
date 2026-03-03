@@ -1,30 +1,38 @@
-// api/generate.js - 使用直接 HTTP 调用，无需任何 npm 依赖
+// api/generate.js - 修复版，确保响应总是有效 JSON
 export default async function handler(req, res) {
-  // 允许跨域
+  // 设置响应头为 JSON
+  res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).json({ success: true });
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const { product } = req.body;
+  let product;
+  try {
+    const body = req.body;
+    product = body.product;
+  } catch (e) {
+    return res.status(400).json({ success: false, error: 'Invalid JSON body' });
+  }
 
   if (!product || !product.product_name) {
-    return res.status(400).json({ success: false, error: '产品信息不完整' });
+    return res.status(400).json({ success: false, error: '产品信息不完整：缺少产品名称' });
   }
 
   // 从环境变量获取 API Key 和模型
   const apiKey = process.env.DASHSCOPE_API_KEY;
-  const model = process.env.DASHSCOPE_MODEL || 'qwen-max'; // 默认使用 qwen-max
+  const model = process.env.DASHSCOPE_MODEL || 'qwen-max';
 
   if (!apiKey) {
-    return res.status(500).json({ success: false, error: 'DASHSCOPE_API_KEY not set' });
+    console.error('DASHSCOPE_API_KEY is not set');
+    return res.status(500).json({ success: false, error: '服务器配置错误：缺少API密钥' });
   }
 
   // 构建提示词
@@ -78,16 +86,38 @@ export default async function handler(req, res) {
       })
     });
 
+    const responseText = await response.text();
+    console.log('DashScope response status:', response.status);
+    console.log('DashScope response body (truncated):', responseText.substring(0, 500));
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('DashScope API error:', response.status, errorText);
+      // 尝试解析错误响应，如果失败则返回通用错误
+      let errorMessage = `DashScope API error: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // 如果响应不是JSON，使用原始文本（截断）
+        errorMessage = responseText.substring(0, 200);
+      }
       return res.status(response.status).json({ 
         success: false, 
-        error: `DashScope API error: ${response.status}` 
+        error: errorMessage 
       });
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse DashScope response as JSON:', responseText);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Invalid response from DashScope API' 
+      });
+    }
   
     if (data.output && data.output.choices && data.output.choices.length > 0) {
       const text = data.output.choices[0].message.content;
@@ -96,14 +126,14 @@ export default async function handler(req, res) {
       console.error('Invalid response structure:', data);
       return res.status(500).json({ 
         success: false, 
-        error: 'Invalid response from DashScope API' 
+        error: 'DashScope返回的数据格式不正确' 
       });
     }
   } catch (error) {
     console.error('DashScope 调用失败:', error);
     return res.status(500).json({ 
       success: false, 
-      error: `API 调用异常: ${error.message}` 
+      error: `API调用失败: ${error.message}` 
     });
   }
 }
