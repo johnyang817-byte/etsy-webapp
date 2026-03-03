@@ -1,7 +1,7 @@
-// api/generate.js - 修复版，确保响应总是有效 JSON
+// api/generate.js - 确保总是返回有效 JSON
 export default async function handler(req, res) {
-  // 设置响应头为 JSON
-  res.setHeader('Content-Type', 'application/json');
+  // 关键：设置正确的 Content-Type
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -16,13 +16,19 @@ export default async function handler(req, res) {
 
   let product;
   try {
+    // 确保解析请求体
     const body = req.body;
     product = body.product;
   } catch (e) {
     return res.status(400).json({ success: false, error: 'Invalid JSON body' });
   }
 
-  if (!product || !product.product_name) {
+  // 验证产品数据
+  if (!product) {
+    return res.status(400).json({ success: false, error: '产品信息不完整：未接收到产品数据' });
+  }
+
+  if (!product.product_name || product.product_name.trim() === '') {
     return res.status(400).json({ success: false, error: '产品信息不完整：缺少产品名称' });
   }
 
@@ -91,7 +97,6 @@ export default async function handler(req, res) {
     console.log('DashScope response body (truncated):', responseText.substring(0, 500));
 
     if (!response.ok) {
-      // 尝试解析错误响应，如果失败则返回通用错误
       let errorMessage = `DashScope API error: ${response.status}`;
       try {
         const errorData = JSON.parse(responseText);
@@ -115,7 +120,7 @@ export default async function handler(req, res) {
       console.error('Failed to parse DashScope response as JSON:', responseText);
       return res.status(500).json({ 
         success: false, 
-        error: 'Invalid response from DashScope API' 
+        error: 'DashScope返回的数据格式不正确' 
       });
     }
   
