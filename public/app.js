@@ -128,6 +128,7 @@ generateAllBtn.addEventListener("click", async () => {
 });
 
 // 调用后端 API
+// 修改 generateForProduct 函数
 async function generateForProduct(product) {
     try {
         const response = await fetch("/api/generate", {
@@ -135,8 +136,17 @@ async function generateForProduct(product) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ product })
         });
+      
+        // 先检查响应状态
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("HTTP error:", response.status, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+        }
+      
+        // 尝试解析 JSON
         const data = await response.json();
-        if (!response.ok || !data.success) {
+        if (!data.success) {
             throw new Error(data.error || "生成失败");
         }
         return { product, text: data.text };
