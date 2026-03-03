@@ -1,4 +1,4 @@
-// public/app.js - 最终修复版，直接监听按钮点击
+// public/app.js - 最终修复版，全局点击监听
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== App Starting ===');
   
@@ -53,55 +53,30 @@ document.addEventListener('DOMContentLoaded', function() {
         clearResults();
     }
   
-    // ============== 关键：直接查找并绑定按钮点击事件 ==============
-    console.log('🔍 Looking for generate button...');
+    // ============== 关键：全局点击监听 ==============
+    console.log('👀 Setting up global click listener...');
   
-    // 方法1：通过 class 查找
-    const submitButtons = document.querySelectorAll('.submit-btn');
-    console.log('Found buttons with .submit-btn:', submitButtons.length);
-  
-    // 方法2：通过文本内容查找
-    const allButtons = document.querySelectorAll('button');
-    let generateButton = null;
-    allButtons.forEach(btn => {
-        if (btn.textContent.includes('生成文案')) {
-            generateButton = btn;
-            console.log('Found button by text:', btn);
-        }
-    });
-  
-    // 绑定点击事件到找到的按钮
-    const buttonsToBind = submitButtons.length > 0 ? submitButtons : (generateButton ? [generateButton] : []);
-  
-    if (buttonsToBind.length === 0) {
-        console.error('❌ CRITICAL: No submit button found!');
-        // 尝试手动创建一个按钮并绑定
-        createDebugButton();
-    } else {
-        console.log('🔘 Binding click event to', buttonsToBind.length, 'button(s)');
-        buttonsToBind.forEach((btn, idx) => {
-            btn.addEventListener('click', async (e) => {
-                console.log(`🔘 BUTTON CLICKED! (button ${idx})`);
-                e.preventDefault();
-                e.stopPropagation();
-                await handleManualGenerate();
-            });
-            console.log(`✅ Button ${idx} event listener attached`);
-        });
-    }
-  
-    // 如果找不到按钮，创建一个调试按钮
-    function createDebugButton() {
-        console.log('🛠️ Creating debug button...');
-        const debugBtn = document.createElement('button');
-        debugBtn.textContent = '调试生成';
-        debugBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:10px;';
-        debugBtn.addEventListener('click', async () => {
-            console.log('🐛 Debug button clicked');
+    // 监听所有点击事件
+    document.addEventListener('click', async (e) => {
+        // 检查点击目标是否是"生成文案"按钮
+        const target = e.target;
+        const isButton = target.tagName === 'BUTTON' && 
+                         (target.textContent.includes('生成文案') || 
+                          target.classList.contains('submit-btn') ||
+                          target.closest('button[type="submit"]'));
+      
+        if (isButton) {
+            console.log('🔥 GLOBAL CLICK CAPTURED! Target:', target);
+            console.log('📍 Clicked at:', e.clientX, e.clientY);
+          
+            // 防止事件冒泡和默认行为
+            e.preventDefault();
+            e.stopPropagation();
+          
+            // 触发生成
             await handleManualGenerate();
-        });
-        document.body.appendChild(debugBtn);
-    }
+        }
+    }, true); // 使用捕获阶段，确保能捕获到事件
   
     // ============== 处理手动生成 ==============
     async function handleManualGenerate() {
@@ -184,31 +159,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
       
-        const lines = result.text.split('\n');
-        let title = '', description = '', tags = '';
-        lines.forEach(line => {
-            if (line.startsWith('标题：')) title = line.substring(3);
-            else if (line.startsWith('描述：')) description = line.substring(3);
-            else if (line.startsWith('标签：')) tags = line.substring(3);
-        });
-      
-        elements.resultContent.innerHTML = `
-            <div class="result-item" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <h3 style="margin-top: 0; color: #2d3748;">${result.product.product_name}</h3>
-                <div style="margin-bottom: 12px;">
-                    <strong style="color: #4a5568;">标题：</strong>
-                    <span class="copyable" data-text="${title}" style="cursor: pointer; color: #3182ce;" onclick="copyText(this)">${title}</span>
+        if (result.error) {
+            elements.resultContent.innerHTML = `
+                <div class="result-item error" style="background: #fff5f5; border: 1px solid #fc8181; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #c53030; margin: 0 0 10px 0;">${result.product.product_name}</h4>
+                    <p style="color: #c53030; margin: 0;">错误: ${result.error}</p>
                 </div>
-                <div style="margin-bottom: 12px;">
-                    <strong style="color: #4a5568;">描述：</strong>
-                    <div class="copyable" data-text="${description}" style="cursor: pointer; color: #3182ce; margin-top: 4px; white-space: pre-wrap;" onclick="copyText(this)">${description}</div>
+            `;
+        } else {
+            const lines = result.text.split('\n');
+            let title = '', description = '', tags = '';
+            lines.forEach(line => {
+                if (line.startsWith('标题：')) title = line.substring(3);
+                else if (line.startsWith('描述：')) description = line.substring(3);
+                else if (line.startsWith('标签：')) tags = line.substring(3);
+            });
+          
+            elements.resultContent.innerHTML = `
+                <div class="result-item" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h3 style="margin-top: 0; color: #2d3748;">${result.product.product_name}</h3>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #4a5568;">标题：</strong>
+                        <span class="copyable" data-text="${title}" style="cursor: pointer; color: #3182ce;" onclick="copyText(this)">${title}</span>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #4a5568;">描述：</strong>
+                        <div class="copyable" data-text="${description}" style="cursor: pointer; color: #3182ce; margin-top: 4px; white-space: pre-wrap;" onclick="copyText(this)">${description}</div>
+                    </div>
+                    <div>
+                        <strong style="color: #4a5568;">标签：</strong>
+                        <span class="copyable" data-text="${tags}" style="cursor: pointer; color: #3182ce;" onclick="copyText(this)">${tags}</span>
+                    </div>
                 </div>
-                <div>
-                    <strong style="color: #4a5568;">标签：</strong>
-                    <span class="copyable" data-text="${tags}" style="cursor: pointer; color: #3182ce;" onclick="copyText(this)">${tags}</span>
-                </div>
-            </div>
-        `;
+            `;
+        }
       
         if (elements.resultSection) {
             elements.resultSection.classList.remove('hidden');
@@ -218,6 +202,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
         if (elements.csvSection) elements.csvSection.style.display = 'none';
         if (elements.manualSection) elements.manualSection.style.display = 'none';
+    }
+  
+    function clearResults() {
+        if (elements.resultContent) elements.resultContent.innerHTML = '';
     }
   
     // 复制功能
@@ -389,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
   
-    // 生成单个产品的函数（供按钮点击使用）
+    // 生成单个产品的函数
     async function generateForProduct(product) {
         console.log('Generating for:', product);
         try {
@@ -418,6 +406,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
     console.log('=== App Initialized Successfully ===');
-    console.log('💡 如果按钮没反应，请检查控制台是否有"🔘 BUTTON CLICKED!"日志');
-    console.log('💡 如果没有，说明按钮没找到，我会创建一个红色调试按钮在右上角');
+    console.log('👀 Global click listener is active. Click the "生成文案" button and check console for "🔥 GLOBAL CLICK CAPTURED!"');
 });
