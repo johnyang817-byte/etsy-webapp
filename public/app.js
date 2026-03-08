@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'etsycopy_results_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'etsypaw_results_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
   };
 
@@ -625,21 +625,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const history = getHistory();
     const selected = [...historySelected].sort((a, b) => a - b).map(i => history[i]).filter(Boolean);
 
-    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tag 1', 'Tag 2', 'Tag 3', 'Tag 4', 'Tag 5', 'Tag 6', 'Tag 7', 'Tag 8', 'Tag 9', 'Tag 10', 'Tag 11', 'Tag 12', 'Tag 13', 'Attributes']];
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
     selected.forEach(item => {
       const s = parseSections(item.text);
       const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
       while (titles.length < 3) titles.push('');
-      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).slice(0, 13);
-      while (tags.length < 13) tags.push('');
-      rows.push([item.product_name, titles[0], titles[1], titles[2], s.description, ...tags, s.attributes]);
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
+      rows.push([item.product_name, titles[0], titles[1], titles[2], s.description, tags, s.attributes]);
     });
 
     const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'etsycopy_history_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'etsypaw_history_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
   };
 
