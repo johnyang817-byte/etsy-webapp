@@ -508,6 +508,9 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // ========== 历史记录 ==========
+  let historySelected = new Set(); // 已选中的历史索引
+  let historyViewOpen = new Set(); // 已展开查看的历史索引
+
   function renderHistory() {
     const history = getHistory();
     const list = document.getElementById('history-list');
@@ -519,37 +522,101 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     empty.classList.add('hidden');
-    list.innerHTML = history.map((item, i) => {
-      const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      return `<div class="history-item" onclick="viewHistory(${i})">
-        <span class="history-item-name">${escapeHtml(item.product_name)}</span>
-        <span class="history-item-date">${date}</span>
-      </div>`;
-    }).join('');
+
+    const hasSelected = historySelected.size > 0;
+
+    list.innerHTML =
+      `<div class="history-toolbar">
+        <label class="history-select-all"><input type="checkbox" ${historySelected.size === history.length ? 'checked' : ''} onchange="historyToggleAll(this.checked)"> Select All (${history.length})</label>
+        <div class="history-toolbar-right">
+          <span class="history-selected-count">${historySelected.size} selected</span>
+          <button class="btn-export" onclick="exportHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-download"></i> Export Selected CSV</button>
+          <button class="btn-history-remove" onclick="removeHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-trash-alt"></i> Remove</button>
+        </div>
+      </div>` +
+      history.map((item, i) => {
+        const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isSelected = historySelected.has(i);
+        const isOpen = historyViewOpen.has(i);
+        let html = `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
+          <div class="history-item-row" onclick="historyToggleView(${i})">
+            <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
+            <i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i>
+            <span class="history-item-name">${escapeHtml(item.product_name)}</span>
+            <span class="history-item-date">${date}</span>
+          </div>`;
+        if (isOpen) {
+          const s = parseSections(item.text);
+          html += `<div class="history-item-detail">`;
+          if (s.title) html += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
+          if (s.description) html += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
+          if (s.tags) {
+            const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean);
+            html += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`;
+          }
+          if (s.attributes) html += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
+          html += `</div>`;
+        }
+        html += `</div>`;
+        return html;
+      }).join('');
   }
 
-  window.viewHistory = function (index) {
-    const history = getHistory();
-    const item = history[index];
-    if (!item) return;
-    showResults([{ product: { product_name: item.product_name }, text: item.text }]);
+  window.historyToggleSelect = function (index) {
+    if (historySelected.has(index)) historySelected.delete(index);
+    else historySelected.add(index);
+    renderHistory();
   };
 
-  // ========== 导出历史 ==========
-  document.getElementById('btn-export-history').addEventListener('click', () => {
+  window.historyToggleAll = function (checked) {
     const history = getHistory();
-    if (history.length === 0) { alert('No history to export'); return; }
-    let csv = 'Product Name,Date,Content\n';
-    history.forEach(item => {
-      const text = (item.text || '').replace(/"/g, '""');
-      csv += `"${item.product_name}","${item.date}","${text}"\n`;
+    historySelected = checked ? new Set(history.map((_, i) => i)) : new Set();
+    renderHistory();
+  };
+
+  window.historyToggleView = function (index) {
+    if (historyViewOpen.has(index)) historyViewOpen.delete(index);
+    else historyViewOpen.add(index);
+    renderHistory();
+  };
+
+  window.removeHistorySelected = function () {
+    if (historySelected.size === 0) return;
+    if (!confirm(`Remove ${historySelected.size} item(s) from history?`)) return;
+    const history = getHistory();
+    const remaining = history.filter((_, i) => !historySelected.has(i));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(remaining));
+    historySelected.clear();
+    historyViewOpen.clear();
+    renderHistory();
+  };
+
+  window.exportHistorySelected = function () {
+    if (historySelected.size === 0) { alert('No items selected'); return; }
+    const history = getHistory();
+    const selected = [...historySelected].sort((a, b) => a - b).map(i => history[i]).filter(Boolean);
+
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tag 1', 'Tag 2', 'Tag 3', 'Tag 4', 'Tag 5', 'Tag 6', 'Tag 7', 'Tag 8', 'Tag 9', 'Tag 10', 'Tag 11', 'Tag 12', 'Tag 13', 'Attributes']];
+    selected.forEach(item => {
+      const s = parseSections(item.text);
+      const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
+      while (titles.length < 3) titles.push('');
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).slice(0, 13);
+      while (tags.length < 13) tags.push('');
+      rows.push([item.product_name, titles[0], titles[1], titles[2], s.description, ...tags, s.attributes]);
     });
+
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'etsycopy_history.csv';
+    a.download = 'etsycopy_history_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
-  });
+  };
+
+  window.viewHistory = function (index) {
+    historyToggleView(index);
+  };
 
   // ========== 工具 ==========
   function showLoading(show) {
