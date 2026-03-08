@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'etsypaw_results_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'listingpaw_results_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
   };
 
@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'etsypaw_history_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'listingpaw_history_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
   };
 
