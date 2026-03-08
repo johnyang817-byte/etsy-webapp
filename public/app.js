@@ -417,21 +417,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const selected = lastResults.filter((_, i) => resultExportSelected[i]);
     if (selected.length === 0) { alert('No products selected for export'); return; }
 
-    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tag 1', 'Tag 2', 'Tag 3', 'Tag 4', 'Tag 5', 'Tag 6', 'Tag 7', 'Tag 8', 'Tag 9', 'Tag 10', 'Tag 11', 'Tag 12', 'Tag 13', 'Attributes']];
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
     selected.forEach(item => {
       const s = parseSections(item.text);
-      // 解析标题：按行分割，提取最多3个
       const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
       while (titles.length < 3) titles.push('');
-      // 解析标签：按逗号分割，最多13个
-      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).slice(0, 13);
-      while (tags.length < 13) tags.push('');
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
 
       rows.push([
         item.product.product_name,
         titles[0], titles[1], titles[2],
         s.description,
-        ...tags,
+        tags,
         s.attributes
       ]);
     });
