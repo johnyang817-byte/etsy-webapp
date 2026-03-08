@@ -1,10 +1,133 @@
-// Etsy 文案助手 - app.js
+// Etsy Copy AI - SaaS App
 document.addEventListener('DOMContentLoaded', function () {
+  // ========== 页面路由 ==========
+  window.showPage = function (page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + page).classList.remove('hidden');
+    if (page === 'dashboard') refreshDashboard();
+    window.scrollTo(0, 0);
+  };
+
+  // ========== 用户系统（localStorage 模拟，后续接真实后端） ==========
+  const AUTH_KEY = 'etsycopy_user';
+  const HISTORY_KEY = 'etsycopy_history';
+  const USAGE_KEY = 'etsycopy_usage';
+
+  function getUser() {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
+  }
+
+  function setUser(user) { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); }
+
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+  }
+
+  function saveHistory(item) {
+    const history = getHistory();
+    history.unshift({ ...item, date: new Date().toISOString() });
+    if (history.length > 200) history.length = 200;
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  function getUsage() {
+    const data = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+    const month = new Date().toISOString().slice(0, 7);
+    if (data.month !== month) return { month, count: 0 };
+    return data;
+  }
+
+  function addUsage() {
+    const usage = getUsage();
+    usage.count++;
+    localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+    return usage;
+  }
+
+  function getPlan() {
+    const user = getUser();
+    return user?.plan || 'free';
+  }
+
+  function getLimit() {
+    const plan = getPlan();
+    if (plan === 'unlimited') return Infinity;
+    if (plan === 'pro') return 100;
+    return 5;
+  }
+
+  function canGenerate() {
+    return getUsage().count < getLimit();
+  }
+
+  // ========== 注册 ==========
+  document.getElementById('signup-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value.trim();
+    const pw = document.getElementById('signup-password').value;
+    const confirm = document.getElementById('signup-confirm').value;
+    if (pw !== confirm) { alert('Passwords do not match'); return; }
+    if (pw.length < 6) { alert('Password must be at least 6 characters'); return; }
+
+    // 模拟注册（后续接真实 API）
+    const users = JSON.parse(localStorage.getItem('etsycopy_users') || '{}');
+    if (users[email]) { alert('Email already registered. Please log in.'); return; }
+    users[email] = { email, password: btoa(pw), plan: 'free', created: new Date().toISOString() };
+    localStorage.setItem('etsycopy_users', JSON.stringify(users));
+    setUser({ email, plan: 'free' });
+    showPage('dashboard');
+  });
+
+  // ========== 登录 ==========
+  document.getElementById('login-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const pw = document.getElementById('login-password').value;
+    const users = JSON.parse(localStorage.getItem('etsycopy_users') || '{}');
+    if (!users[email] || users[email].password !== btoa(pw)) {
+      alert('Invalid email or password'); return;
+    }
+    setUser({ email, plan: users[email].plan || 'free' });
+    showPage('dashboard');
+  });
+
+  // ========== 登出 ==========
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    localStorage.removeItem(AUTH_KEY);
+    showPage('landing');
+  });
+
+  // ========== Dashboard 刷新 ==========
+  function refreshDashboard() {
+    const user = getUser();
+    if (!user) { showPage('landing'); return; }
+    const usage = getUsage();
+    const limit = getLimit();
+    const plan = getPlan();
+
+    document.getElementById('dash-usage').textContent = `${usage.count} / ${limit === Infinity ? '∞' : limit} used`;
+    document.getElementById('dash-plan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+
+    if (plan !== 'free') {
+      document.getElementById('btn-upgrade').textContent = 'Manage Plan';
+    }
+
+    const warning = document.getElementById('usage-warning');
+    if (!canGenerate()) {
+      warning.classList.remove('hidden');
+    } else {
+      warning.classList.add('hidden');
+    }
+  }
+
+  // ========== DOM 元素 ==========
   const el = {
     modeCsv: document.getElementById('mode-csv'),
     modeManual: document.getElementById('mode-manual'),
+    modeHistory: document.getElementById('mode-history'),
     csvSection: document.getElementById('csv-section'),
     manualSection: document.getElementById('manual-section'),
+    historySection: document.getElementById('history-section'),
     generateSection: document.getElementById('generate-section'),
     generateAllBtn: document.getElementById('generate-all'),
     dropZone: document.getElementById('drop-zone'),
@@ -23,39 +146,45 @@ document.addEventListener('DOMContentLoaded', function () {
   let csvProducts = [];
 
   // ========== 模式切换 ==========
-  el.modeCsv.addEventListener('click', () => switchMode('csv'));
-  el.modeManual.addEventListener('click', () => switchMode('manual'));
-
   function switchMode(mode) {
-    const isCsv = mode === 'csv';
-    el.modeCsv.classList.toggle('active', isCsv);
-    el.modeManual.classList.toggle('active', !isCsv);
-    el.csvSection.classList.toggle('hidden', !isCsv);
-    el.manualSection.classList.toggle('hidden', isCsv);
+    ['csv', 'manual', 'history'].forEach(m => {
+      const btn = document.getElementById('mode-' + m);
+      const sec = document.getElementById(m + '-section');
+      btn.classList.toggle('active', m === mode);
+      sec.classList.toggle('hidden', m !== mode);
+    });
     el.generateSection.classList.add('hidden');
     el.resultSection.classList.add('hidden');
+    if (mode === 'csv' && csvProducts.length > 0) {
+      el.csvPreview.classList.remove('hidden');
+      el.generateSection.classList.remove('hidden');
+    }
+    if (mode === 'history') renderHistory();
   }
+
+  el.modeCsv.addEventListener('click', () => switchMode('csv'));
+  el.modeManual.addEventListener('click', () => switchMode('manual'));
+  el.modeHistory.addEventListener('click', () => switchMode('history'));
 
   // ========== CSV 上传 ==========
   el.dropZone.addEventListener('click', () => el.csvInput.click());
   el.dropZone.addEventListener('dragover', e => { e.preventDefault(); el.dropZone.style.background = '#e0e7ff'; });
-  el.dropZone.addEventListener('dragleave', () => { el.dropZone.style.background = '#f8f9ff'; });
+  el.dropZone.addEventListener('dragleave', () => { el.dropZone.style.background = 'white'; });
   el.dropZone.addEventListener('drop', e => {
     e.preventDefault();
-    el.dropZone.style.background = '#f8f9ff';
+    el.dropZone.style.background = 'white';
     if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
   });
   el.csvInput.addEventListener('change', e => { if (e.target.files.length) handleCsvFile(e.target.files[0]); });
 
   async function handleCsvFile(file) {
-    if (!file.name.endsWith('.csv')) { alert('请上传 CSV 文件'); return; }
+    if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file'); return; }
     el.fileName.textContent = file.name;
-    el.loading.classList.remove('hidden');
     try {
       let text = await file.text();
       if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
       const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) { alert('CSV 文件内容为空或格式不正确'); return; }
+      if (lines.length < 2) { alert('CSV file is empty or invalid'); return; }
       const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
       csvProducts = [];
       for (let i = 1; i < lines.length; i++) {
@@ -64,16 +193,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const row = {};
         headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
         const product = {
-          product_name: (row['product_name_en'] || row['product_name'] || row['Product Name'] || row['产品名称'] || row['product_name_cn'] || '').trim(),
-          keywords: [row['keywords'] || row['关键词'], row['technique'] || row['工艺'], row['target_audience'] || row['目标客户'], row['usage_scene'] || row['使用场景']].filter(Boolean).join(', '),
-          material: (row['material'] || row['材质'] || '').trim(),
-          size: (row['size'] || row['尺寸'] || '').trim(),
-          color: (row['color'] || row['颜色'] || '').trim(),
-          occasion: (row['occasion'] || row['适用场景'] || row['usage_scene'] || '').trim()
+          product_name: (row['product_name_en'] || row['product_name'] || row['Product Name'] || row['product_name_cn'] || '').trim(),
+          keywords: [row['keywords'], row['technique'], row['target_audience'], row['usage_scene']].filter(Boolean).join(', '),
+          material: (row['material'] || '').trim(),
+          size: (row['size'] || '').trim(),
+          color: (row['color'] || '').trim(),
+          occasion: (row['occasion'] || row['usage_scene'] || '').trim()
         };
         if (product.product_name) csvProducts.push(product);
       }
-      if (csvProducts.length === 0) { alert('CSV 中没有有效的产品数据'); return; }
+      if (csvProducts.length === 0) { alert('No valid products found in CSV'); return; }
       el.productList.innerHTML = csvProducts.map(p =>
         `<div class="product-item"><i class="fas fa-check-circle"></i> ${p.product_name}</div>`
       ).join('');
@@ -81,15 +210,17 @@ document.addEventListener('DOMContentLoaded', function () {
       el.generateSection.classList.remove('hidden');
       el.productCount.textContent = csvProducts.length;
     } catch (err) {
-      alert('CSV 解析失败: ' + err.message);
-    } finally {
-      el.loading.classList.add('hidden');
+      alert('CSV parse error: ' + err.message);
     }
   }
 
   // ========== 手动输入 ==========
   el.manualForm.addEventListener('submit', async e => {
     e.preventDefault();
+    if (!canGenerate()) {
+      alert('You have reached your monthly limit. Please upgrade your plan.');
+      return;
+    }
     const product = {
       product_name: document.getElementById('manual-name').value.trim(),
       keywords: document.getElementById('manual-keywords').value.trim(),
@@ -98,13 +229,18 @@ document.addEventListener('DOMContentLoaded', function () {
       color: document.getElementById('manual-color').value.trim(),
       occasion: document.getElementById('manual-occasion').value.trim()
     };
-    if (!product.product_name) { alert('请填写产品名称'); return; }
+    if (!product.product_name) { alert('Please enter a product name'); return; }
     showLoading(true);
     try {
       const result = await callApi(product);
+      if (!result.error) {
+        addUsage();
+        saveHistory({ product_name: product.product_name, text: result.text });
+        refreshDashboard();
+      }
       showResults([result]);
     } catch (err) {
-      alert('生成失败: ' + err.message);
+      alert('Generation failed: ' + err.message);
     } finally {
       showLoading(false);
     }
@@ -112,12 +248,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== CSV 批量生成 ==========
   el.generateAllBtn.addEventListener('click', async () => {
-    if (csvProducts.length === 0) { alert('没有可生成的产品'); return; }
+    if (csvProducts.length === 0) { alert('No products to generate'); return; }
+    const remaining = getLimit() - getUsage().count;
+    if (remaining <= 0) {
+      alert('You have reached your monthly limit. Please upgrade your plan.');
+      return;
+    }
+    const toGenerate = csvProducts.slice(0, remaining);
+    if (toGenerate.length < csvProducts.length) {
+      if (!confirm(`You can only generate ${remaining} more this month. Continue with the first ${remaining} products?`)) return;
+    }
     showLoading(true);
     const results = [];
-    for (const product of csvProducts) {
-      results.push(await callApi(product));
+    for (const product of toGenerate) {
+      const result = await callApi(product);
+      if (!result.error) {
+        addUsage();
+        saveHistory({ product_name: product.product_name, text: result.text });
+      }
+      results.push(result);
     }
+    refreshDashboard();
     showResults(results);
     showLoading(false);
   });
@@ -131,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
         body: JSON.stringify({ product })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || '生成失败');
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
       return { product, text: data.text };
     } catch (err) {
       return { product, error: err.message };
@@ -147,8 +298,6 @@ document.addEventListener('DOMContentLoaded', function () {
       { key: 'tags', regex: /【标签】/i },
       { key: 'attributes', regex: /【属性】/i }
     ];
-
-    // 找到每个板块的位置
     const positions = markers.map(m => {
       const match = text.match(m.regex);
       return { key: m.key, index: match ? match.index : -1 };
@@ -159,12 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const end = i + 1 < positions.length ? positions[i + 1].index : text.length;
       sections[positions[i].key] = text.slice(start, end).trim();
     }
-
-    // 如果没有匹配到板块标记，整体作为描述
-    if (positions.length === 0) {
-      sections.description = text;
-    }
-
+    if (positions.length === 0) sections.description = text;
     return sections;
   }
 
@@ -172,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function showResults(results) {
     el.resultContent.innerHTML = results.map((item, i) => {
       if (item.error) {
-        return `<div class="result-block"><h3>❌ 失败：${item.product.product_name}</h3><p style="color:#e53e3e;">${item.error}</p></div>`;
+        return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${item.product.product_name}</span></div><div class="block-content" style="color:#e53e3e;">${item.error}</div></div>`;
       }
       return buildResultHtml(item, i);
     }).join('');
@@ -182,89 +326,106 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function buildResultHtml(item, index) {
     const s = parseSections(item.text);
-    const productName = item.product.product_name;
+    const name = item.product.product_name;
+    let html = `<div class="result-product"><h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>`;
 
-    let html = `<div class="result-product">
-      <h2 class="result-product-title">📦 ${productName}</h2>`;
+    const blocks = [
+      { key: 'title', icon: '🏷️', label: 'Etsy Titles (3 Options)' },
+      { key: 'description', icon: '📝', label: 'Product Description' },
+      { key: 'tags', icon: '🔖', label: 'Etsy Tags (13)' },
+      { key: 'attributes', icon: '📋', label: 'Listing Attributes' }
+    ];
 
-    // 标题板块
-    if (s.title) {
+    blocks.forEach(b => {
+      if (!s[b.key]) return;
+      let content;
+      if (b.key === 'tags') {
+        const tagLine = s.tags.replace(/\n/g, ' ').trim();
+        const tags = tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+        content = `<div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div><div class="tags-raw">${escapeHtml(tagLine)}</div>`;
+      } else {
+        content = formatText(s[b.key]);
+      }
       html += `<div class="result-block">
-        <div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy 标题（3个选项）</span>
-          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
-        <div class="block-content copyable">${formatText(s.title)}</div>
+        <div class="block-header"><span class="block-icon">${b.icon}</span><span class="block-label">${b.label}</span>
+          <button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div>
+        <div class="block-content copyable">${content}</div>
       </div>`;
-    }
-
-    // 描述板块
-    if (s.description) {
-      html += `<div class="result-block">
-        <div class="block-header"><span class="block-icon">📝</span><span class="block-label">产品描述</span>
-          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
-        <div class="block-content copyable">${formatText(s.description)}</div>
-      </div>`;
-    }
-
-    // 标签板块
-    if (s.tags) {
-      const tagLine = s.tags.replace(/\n/g, ' ').trim();
-      html += `<div class="result-block">
-        <div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Etsy 标签（13个）</span>
-          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
-        <div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div>
-          <div class="tags-raw">${escapeHtml(tagLine)}</div></div>
-      </div>`;
-    }
-
-    // 属性板块
-    if (s.attributes) {
-      html += `<div class="result-block">
-        <div class="block-header"><span class="block-icon">📋</span><span class="block-label">Listing 属性</span>
-          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
-        <div class="block-content copyable">${formatText(s.attributes)}</div>
-      </div>`;
-    }
+    });
 
     html += '</div>';
     return html;
   }
 
   function formatText(text) {
-    return escapeHtml(text)
-      .replace(/\n/g, '<br>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   }
 
   function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function renderTags(tagLine) {
-    // 提取逗号分隔的标签
-    const tags = tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean);
-    return tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('');
-  }
-
-  // ========== 复制功能 ==========
   window.copyText = function (btn) {
     const content = btn.closest('.result-block').querySelector('.copyable');
-    // 获取纯文本
     const text = content.innerText || content.textContent;
     navigator.clipboard.writeText(text).then(() => {
       const orig = btn.textContent;
-      btn.textContent = '✅ 已复制';
+      btn.textContent = '✅ Copied!';
       setTimeout(() => { btn.textContent = orig; }, 2000);
     }).catch(() => {
       const ta = document.createElement('textarea');
       ta.value = text; document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); document.body.removeChild(ta);
-      const orig = btn.textContent;
-      btn.textContent = '✅ 已复制';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
     });
   };
 
-  // ========== 工具函数 ==========
+  // ========== 历史记录 ==========
+  function renderHistory() {
+    const history = getHistory();
+    const list = document.getElementById('history-list');
+    const empty = document.getElementById('history-empty');
+
+    if (history.length === 0) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    list.innerHTML = history.map((item, i) => {
+      const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return `<div class="history-item" onclick="viewHistory(${i})">
+        <span class="history-item-name">${escapeHtml(item.product_name)}</span>
+        <span class="history-item-date">${date}</span>
+      </div>`;
+    }).join('');
+  }
+
+  window.viewHistory = function (index) {
+    const history = getHistory();
+    const item = history[index];
+    if (!item) return;
+    showResults([{ product: { product_name: item.product_name }, text: item.text }]);
+  };
+
+  // ========== 导出历史 ==========
+  document.getElementById('btn-export-history').addEventListener('click', () => {
+    const history = getHistory();
+    if (history.length === 0) { alert('No history to export'); return; }
+    let csv = 'Product Name,Date,Content\n';
+    history.forEach(item => {
+      const text = (item.text || '').replace(/"/g, '""');
+      csv += `"${item.product_name}","${item.date}","${text}"\n`;
+    });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'etsycopy_history.csv';
+    a.click();
+  });
+
+  // ========== 工具 ==========
   function showLoading(show) {
     el.loading.classList.toggle('hidden', !show);
     if (show) el.resultSection.classList.add('hidden');
@@ -272,12 +433,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
-    switchMode(el.modeCsv.classList.contains('active') ? 'csv' : 'manual');
-    if (csvProducts.length > 0) {
-      el.csvPreview.classList.remove('hidden');
-      el.generateSection.classList.remove('hidden');
-    }
+    if (el.modeCsv.classList.contains('active')) switchMode('csv');
+    else if (el.modeHistory.classList.contains('active')) switchMode('history');
+    else switchMode('manual');
   });
 
-  switchMode('csv');
+  // ========== 初始化 ==========
+  const user = getUser();
+  if (user) {
+    showPage('dashboard');
+  } else {
+    showPage('landing');
+  }
 });

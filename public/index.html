@@ -1,105 +1,291 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etsy 文案助手</title>
+    <title>EtsyCopy AI - AI-Powered Etsy Listing Copywriter</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-pen-nib"></i> Etsy 文案助手</h1>
-            <p class="subtitle">基于 AI 的 Etsy SEO 文案生成器</p>
-        </header>
-
-        <main>
-            <!-- 模式选择 -->
-            <section class="mode-selector">
-                <button id="mode-csv" class="mode-btn active">
-                    <i class="fas fa-file-csv"></i> CSV 批量生成
-                </button>
-                <button id="mode-manual" class="mode-btn">
-                    <i class="fas fa-keyboard"></i> 手动输入
-                </button>
-            </section>
-
-            <!-- CSV 上传区域 -->
-            <section id="csv-section" class="content-section">
-                <div class="upload-area" id="drop-zone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>点击或拖拽上传 CSV 文件</p>
-                    <input type="file" id="csv-input" accept=".csv" hidden>
-                    <small>模板下载：<a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
-                </div>
-                <div id="csv-preview" class="preview-area hidden">
-                    <h3>已选择文件：<span id="file-name"></span></h3>
-                    <div id="product-list"></div>
-                </div>
-            </section>
-
-            <!-- 手动输入区域 -->
-            <section id="manual-section" class="content-section hidden">
-                <form id="manual-form">
-    <div class="form-group">
-        <label for="manual-name">产品名称 *</label>
-        <input type="text" id="manual-name" placeholder="例如：Lucky Knot Bracelet" required>
-    </div>
-    <div class="form-group">
-        <label for="manual-keywords">关键词/描述</label>
-        <input type="text" id="manual-keywords" placeholder="例如：bohemian jewelry gift for her">
-    </div>
-    <div class="form-group">
-        <label for="manual-material">材质</label>
-        <input type="text" id="manual-material" placeholder="例如：leather">
-    </div>
-    <div class="form-group">
-        <label for="manual-size">尺寸</label>
-        <input type="text" id="manual-size" placeholder="例如：adjustable">
-    </div>
-    <div class="form-group">
-        <label for="manual-color">颜色</label>
-        <input type="text" id="manual-color" placeholder="例如：brown">
-    </div>
-    <div class="form-group">
-        <label for="manual-occasion">适用场景</label>
-        <input type="text" id="manual-occasion" placeholder="例如：birthday, christmas">
-    </div>
-    <button type="submit" class="submit-btn">
-        <i class="fas fa-magic"></i> 生成文案
-    </button>
-</form>
-            </section>
-
-            <!-- 生成按钮（CSV模式） -->
-            <section id="generate-section" class="hidden">
-                <button id="generate-all" class="generate-btn">
-                    <i class="fas fa-bolt"></i> 生成全部文案 (<span id="product-count">0</span>)
-                </button>
-            </section>
-
-            <!-- 加载状态 -->
-            <div id="loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>AI 正在创作中，请稍候...</p>
+    <!-- ========== Landing Page ========== -->
+    <div id="page-landing" class="page">
+        <nav class="landing-nav">
+            <div class="nav-brand">
+                <i class="fas fa-pen-nib"></i> EtsyCopy AI
             </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <button class="btn-nav" onclick="showPage('login')">Log In</button>
+                <button class="btn-nav btn-nav-primary" onclick="showPage('signup')">Start Free</button>
+            </div>
+        </nav>
 
-            <!-- 结果展示 -->
-            <section id="result-section" class="hidden">
-                <div class="result-header">
-                    <h2>生成结果</h2>
-                    <button id="back-btn" class="back-btn"><i class="fas fa-arrow-left"></i> 返回</button>
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Stop Writing. Start Selling.</h1>
+            <p class="hero-sub">AI-powered Etsy listing copywriter that generates SEO-optimized titles, descriptions, tags & attributes in seconds.</p>
+            <button class="btn-hero" onclick="showPage('signup')">Get 5 Free Generations <i class="fas fa-arrow-right"></i></button>
+            <p class="hero-note">No credit card required</p>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="features-section">
+            <h2>Everything You Need to Rank on Etsy</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-heading"></i></div>
+                    <h3>SEO Titles</h3>
+                    <p>3 optimized title options per product, packed with trending keywords and gift-related terms.</p>
                 </div>
-                <div id="result-content"></div>
-            </section>
-        </main>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-align-left"></i></div>
+                    <h3>Rich Descriptions</h3>
+                    <p>Emotionally engaging, story-driven product descriptions with promo tags, reviews & CTAs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-tags"></i></div>
+                    <h3>Smart Tags</h3>
+                    <p>13 SEO tags per product based on 2026 Etsy trending searches. Copy-paste ready.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-list-check"></i></div>
+                    <h3>Auto Attributes</h3>
+                    <p>Automatically fills Etsy listing attributes like color, material, occasion & recipient.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-file-csv"></i></div>
+                    <h3>Bulk CSV Upload</h3>
+                    <p>Upload your product spreadsheet and generate copy for all products at once.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-clock-rotate-left"></i></div>
+                    <h3>History & Export</h3>
+                    <p>All generated copy is saved. Export anytime as CSV for easy Etsy upload.</p>
+                </div>
+            </div>
+        </section>
 
-        <footer>
-            <p>Powered by DashScope · 文案生成器</p>
+        <!-- Pricing -->
+        <section id="pricing" class="pricing-section">
+            <h2>Simple, Transparent Pricing</h2>
+            <p class="pricing-sub">Start free. Upgrade when you're ready.</p>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-badge">Free</div>
+                    <div class="pricing-price">$0<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 5 generations / month</li>
+                        <li><i class="fas fa-check"></i> Manual input only</li>
+                        <li><i class="fas fa-check"></i> All 4 content sections</li>
+                        <li><i class="fas fa-check"></i> Copy to clipboard</li>
+                        <li class="disabled"><i class="fas fa-times"></i> CSV bulk upload</li>
+                        <li class="disabled"><i class="fas fa-times"></i> History & export</li>
+                    </ul>
+                    <button class="btn-pricing" onclick="showPage('signup')">Get Started</button>
+                </div>
+                <div class="pricing-card popular">
+                    <div class="pricing-popular-tag">Most Popular</div>
+                    <div class="pricing-badge">Pro</div>
+                    <div class="pricing-price">$9.99<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 100 generations / month</li>
+                        <li><i class="fas fa-check"></i> CSV bulk upload</li>
+                        <li><i class="fas fa-check"></i> All 4 content sections</li>
+                        <li><i class="fas fa-check"></i> History & export</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li class="disabled"><i class="fas fa-times"></i> API access</li>
+                    </ul>
+                    <button class="btn-pricing btn-pricing-primary" onclick="showPage('signup')">Start Pro Trial</button>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-badge">Unlimited</div>
+                    <div class="pricing-price">$29.99<span>/mo</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Unlimited generations</li>
+                        <li><i class="fas fa-check"></i> CSV bulk upload</li>
+                        <li><i class="fas fa-check"></i> All 4 content sections</li>
+                        <li><i class="fas fa-check"></i> History & export</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> API access</li>
+                    </ul>
+                    <button class="btn-pricing" onclick="showPage('signup')">Go Unlimited</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <p>&copy; 2026 EtsyCopy AI. Built for Etsy sellers, by Etsy sellers.</p>
         </footer>
     </div>
-    
+
+    <!-- ========== Login Page ========== -->
+    <div id="page-login" class="page hidden">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1><i class="fas fa-pen-nib"></i> EtsyCopy AI</h1>
+                <p>Welcome back! Log in to your account.</p>
+            </div>
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="Your password" required>
+                </div>
+                <button type="submit" class="btn-primary">Log In</button>
+                <p class="auth-switch">Don't have an account? <a href="#" onclick="showPage('signup')">Sign up free</a></p>
+            </form>
+            <button class="btn-back-landing" onclick="showPage('landing')"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+    </div>
+
+    <!-- ========== Signup Page ========== -->
+    <div id="page-signup" class="page hidden">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1><i class="fas fa-pen-nib"></i> EtsyCopy AI</h1>
+                <p>Create your free account. 5 free generations included!</p>
+            </div>
+            <form id="signup-form" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signup-email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signup-password" placeholder="At least 6 characters" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signup-confirm" placeholder="Confirm password" required>
+                </div>
+                <button type="submit" class="btn-primary">Create Account</button>
+                <p class="auth-switch">Already have an account? <a href="#" onclick="showPage('login')">Log in</a></p>
+            </form>
+            <button class="btn-back-landing" onclick="showPage('landing')"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+    </div>
+
+    <!-- ========== Dashboard (App) ========== -->
+    <div id="page-dashboard" class="page hidden">
+        <nav class="dash-nav">
+            <div class="nav-brand"><i class="fas fa-pen-nib"></i> EtsyCopy AI</div>
+            <div class="dash-nav-right">
+                <span id="dash-usage" class="usage-badge">0 / 5 used</span>
+                <span id="dash-plan" class="plan-badge">Free</span>
+                <button class="btn-nav" id="btn-upgrade" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView()">Upgrade</button>
+                <button class="btn-nav" id="btn-logout">Log Out</button>
+            </div>
+        </nav>
+
+        <div class="dash-container">
+            <!-- 用量提示 -->
+            <div id="usage-warning" class="usage-warning hidden">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>You've used all your free generations this month. <a href="#" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView()">Upgrade to Pro</a> for more.</span>
+            </div>
+
+            <main>
+                <!-- 模式选择 -->
+                <section class="mode-selector">
+                    <button id="mode-csv" class="mode-btn active">
+                        <i class="fas fa-file-csv"></i> CSV Bulk
+                    </button>
+                    <button id="mode-manual" class="mode-btn">
+                        <i class="fas fa-keyboard"></i> Manual Input
+                    </button>
+                    <button id="mode-history" class="mode-btn">
+                        <i class="fas fa-clock-rotate-left"></i> History
+                    </button>
+                </section>
+
+                <!-- CSV 上传区域 -->
+                <section id="csv-section" class="content-section">
+                    <div class="upload-area" id="drop-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag to upload CSV file</p>
+                        <input type="file" id="csv-input" accept=".csv" hidden>
+                        <small>Template: <a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
+                    </div>
+                    <div id="csv-preview" class="preview-area hidden">
+                        <h3><i class="fas fa-list"></i> Products Found</h3>
+                        <div id="product-list"></div>
+                        <span id="file-name"></span>
+                    </div>
+                </section>
+
+                <!-- 手动输入 -->
+                <section id="manual-section" class="content-section hidden">
+                    <form id="manual-form">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="manual-name" placeholder="e.g. Handmade Red Cord Buddhist Lucky Knot Bracelet" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Keywords / Description</label>
+                            <input type="text" id="manual-keywords" placeholder="e.g. bohemian jewelry, gift for her">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Material</label>
+                                <input type="text" id="manual-material" placeholder="e.g. leather, silver">
+                            </div>
+                            <div class="form-group">
+                                <label>Size</label>
+                                <input type="text" id="manual-size" placeholder="e.g. adjustable">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Color</label>
+                                <input type="text" id="manual-color" placeholder="e.g. red, gold">
+                            </div>
+                            <div class="form-group">
+                                <label>Occasion</label>
+                                <input type="text" id="manual-occasion" placeholder="e.g. birthday, christmas">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy</button>
+                    </form>
+                </section>
+
+                <!-- 历史记录 -->
+                <section id="history-section" class="content-section hidden">
+                    <div class="history-header">
+                        <h3><i class="fas fa-clock-rotate-left"></i> Generation History</h3>
+                        <button class="btn-export" id="btn-export-history"><i class="fas fa-download"></i> Export CSV</button>
+                    </div>
+                    <div id="history-list"></div>
+                    <p id="history-empty" class="empty-state">No history yet. Generate your first listing copy!</p>
+                </section>
+
+                <!-- CSV 批量生成按钮 -->
+                <section id="generate-section" class="generate-section hidden">
+                    <p>Ready to generate for <strong id="product-count">0</strong> products</p>
+                    <button id="generate-all" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate All</button>
+                </section>
+
+                <!-- Loading -->
+                <div id="loading" class="loading-overlay hidden">
+                    <div class="spinner"></div>
+                    <p>AI is crafting your Etsy copy...</p>
+                    <p class="loading-sub">This may take 15-30 seconds</p>
+                </div>
+
+                <!-- 结果展示 -->
+                <section id="result-section" class="hidden">
+                    <div id="result-content"></div>
+                    <button id="back-btn"><i class="fas fa-arrow-left"></i> Generate Another</button>
+                </section>
+            </main>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
