@@ -723,27 +723,26 @@ document.addEventListener('DOMContentLoaded', function () {
       textarea.value = saved[key]?.text || '';
       body.classList.toggle('hidden', !isCustom);
       status.textContent = isCustom ? 'Custom' : 'Default';
-      status.style.color = isCustom ? 'var(--accent)' : '';
-      // Update segmented buttons
-      const segmented = document.querySelector(`.prompt-segmented[data-target="${key}"]`);
-      segmented.querySelectorAll('.seg-btn').forEach(btn => {
+      status.className = 'ps-item-badge' + (isCustom ? ' ps-badge-custom' : '');
+      const segmented = document.querySelector(`.ps-seg[data-target="${key}"]`);
+      segmented.querySelectorAll('.ps-seg-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === (isCustom ? 'custom' : 'default'));
       });
     });
   }
 
   // Segmented control clicks
-  document.querySelectorAll('.seg-btn').forEach(btn => {
+  document.querySelectorAll('.ps-seg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const segmented = btn.closest('.prompt-segmented');
+      const segmented = btn.closest('.ps-seg');
       const target = segmented.dataset.target;
       const mode = btn.dataset.mode;
       const body = document.getElementById('body-' + target);
       const status = document.getElementById('status-' + target);
-      segmented.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+      segmented.querySelectorAll('.ps-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
       body.classList.toggle('hidden', mode === 'default');
       status.textContent = mode === 'custom' ? 'Custom' : 'Default';
-      status.style.color = mode === 'custom' ? 'var(--accent)' : '';
+      status.className = 'ps-item-badge' + (mode === 'custom' ? ' ps-badge-custom' : '');
       if (mode === 'custom') document.getElementById('prompt-' + target).focus();
     });
   });
@@ -753,22 +752,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const prompts = {};
     PROMPT_SECTIONS.forEach(key => {
       const textarea = document.getElementById('prompt-' + key);
-      const segmented = document.querySelector(`.prompt-segmented[data-target="${key}"]`);
-      const activeBtn = segmented.querySelector('.seg-btn.active');
+      const segmented = document.querySelector(`.ps-seg[data-target="${key}"]`);
+      const activeBtn = segmented.querySelector('.ps-seg-btn.active');
       const mode = activeBtn?.dataset.mode || 'default';
       prompts[key] = { mode, text: textarea.value };
-      // Save to prompt history if custom and has content
       if (mode === 'custom' && textarea.value.trim()) {
         addPromptHistory(key, textarea.value);
       }
     });
     localStorage.setItem(getUserKey('prompts'), JSON.stringify(prompts));
-    // Visual feedback
     const btn = document.getElementById('btn-save-prompts');
     const orig = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-    btn.style.background = '#34c759';
-    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 1500);
+    btn.classList.add('ps-btn-saved');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('ps-btn-saved'); }, 1800);
   });
 
   // Reset
@@ -812,14 +809,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const textarea = document.getElementById('prompt-' + section);
     textarea.value = history[index].text;
     // Switch to custom mode
-    const segmented = document.querySelector(`.prompt-segmented[data-target="${section}"]`);
-    segmented.querySelectorAll('.seg-btn').forEach(btn => {
+    const segmented = document.querySelector(`.ps-seg[data-target="${section}"]`);
+    segmented.querySelectorAll('.ps-seg-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.mode === 'custom');
     });
     document.getElementById('body-' + section).classList.remove('hidden');
     const status = document.getElementById('status-' + section);
     status.textContent = 'Custom';
-    status.style.color = 'var(--accent)';
+    status.className = 'ps-item-badge ps-badge-custom';
     closePromptHistory();
     textarea.focus();
   };

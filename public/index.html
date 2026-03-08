@@ -267,119 +267,142 @@
 
                 <!-- Prompt Settings -->
                 <section id="prompts-section" class="content-section hidden">
-                    <div class="prompt-settings">
-                        <div class="prompt-settings-header">
-                            <div>
-                                <h2 class="prompt-settings-title">Prompt Settings</h2>
-                                <p class="prompt-settings-desc">Customize how AI generates your listing copy. Switch between Default and Custom for each section.</p>
+                    <div class="ps-panel">
+                        <!-- Header -->
+                        <div class="ps-header">
+                            <div class="ps-header-text">
+                                <h2>Prompt Settings</h2>
+                                <p>Customize how AI generates each section of your listing copy.</p>
                             </div>
                         </div>
 
-                        <div class="prompt-cards">
-                            <div class="prompt-card" data-section="title">
-                                <div class="prompt-card-top">
-                                    <div class="prompt-card-label">
-                                        <span class="prompt-card-icon">🏷️</span>
-                                        <div>
-                                            <span class="prompt-card-name">Title</span>
-                                            <span class="prompt-card-status" id="status-title">Default</span>
+                        <!-- Cards -->
+                        <div class="ps-list">
+                            <div class="ps-item" data-section="title">
+                                <div class="ps-item-row">
+                                    <div class="ps-item-left">
+                                        <div class="ps-icon ps-icon-blue">🏷️</div>
+                                        <div class="ps-item-info">
+                                            <span class="ps-item-name">Title</span>
+                                            <span class="ps-item-badge" id="status-title">Default</span>
                                         </div>
                                     </div>
-                                    <div class="prompt-segmented" data-target="title">
-                                        <button class="seg-btn active" data-mode="default">Default</button>
-                                        <button class="seg-btn" data-mode="custom">Custom</button>
+                                    <div class="ps-seg" data-target="title">
+                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
                                 </div>
-                                <div class="prompt-card-body hidden" id="body-title">
-                                    <textarea id="prompt-title" class="prompt-input" rows="4" placeholder="Describe how you want titles generated...&#10;e.g. Generate 3 SEO titles under 140 chars, include gift keywords"></textarea>
-                                    <div class="prompt-card-footer">
-                                        <button class="prompt-history-btn" onclick="showPromptHistory('title')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                                <div class="ps-item-expand hidden" id="body-title">
+                                    <div class="ps-textarea-wrap">
+                                        <textarea id="prompt-title" class="ps-textarea" rows="5" placeholder="e.g. Generate 3 SEO-optimized Etsy titles under 140 characters. Include gift-related keywords like 'gift for her', 'birthday present'. Use natural American English."></textarea>
+                                    </div>
+                                    <div class="ps-item-actions">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('title')">
+                                            <i class="fas fa-clock-rotate-left"></i> History
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="prompt-card" data-section="description">
-                                <div class="prompt-card-top">
-                                    <div class="prompt-card-label">
-                                        <span class="prompt-card-icon">📝</span>
-                                        <div>
-                                            <span class="prompt-card-name">Description</span>
-                                            <span class="prompt-card-status" id="status-description">Default</span>
+                            <div class="ps-item" data-section="description">
+                                <div class="ps-item-row">
+                                    <div class="ps-item-left">
+                                        <div class="ps-icon ps-icon-green">📝</div>
+                                        <div class="ps-item-info">
+                                            <span class="ps-item-name">Description</span>
+                                            <span class="ps-item-badge" id="status-description">Default</span>
                                         </div>
                                     </div>
-                                    <div class="prompt-segmented" data-target="description">
-                                        <button class="seg-btn active" data-mode="default">Default</button>
-                                        <button class="seg-btn" data-mode="custom">Custom</button>
+                                    <div class="ps-seg" data-target="description">
+                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
                                 </div>
-                                <div class="prompt-card-body hidden" id="body-description">
-                                    <textarea id="prompt-description" class="prompt-input" rows="6" placeholder="Describe the style and structure of product descriptions...&#10;e.g. Warm, story-driven, include promo tags and customer reviews"></textarea>
-                                    <div class="prompt-card-footer">
-                                        <button class="prompt-history-btn" onclick="showPromptHistory('description')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                                <div class="ps-item-expand hidden" id="body-description">
+                                    <div class="ps-textarea-wrap">
+                                        <textarea id="prompt-description" class="ps-textarea" rows="7" placeholder="e.g. Write a warm, story-driven product description. Include promo tags with emojis, emotional intro, gifting suggestions, customer reviews, and a compelling CTA."></textarea>
+                                    </div>
+                                    <div class="ps-item-actions">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('description')">
+                                            <i class="fas fa-clock-rotate-left"></i> History
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="prompt-card" data-section="tags">
-                                <div class="prompt-card-top">
-                                    <div class="prompt-card-label">
-                                        <span class="prompt-card-icon">🔖</span>
-                                        <div>
-                                            <span class="prompt-card-name">Tags</span>
-                                            <span class="prompt-card-status" id="status-tags">Default</span>
+                            <div class="ps-item" data-section="tags">
+                                <div class="ps-item-row">
+                                    <div class="ps-item-left">
+                                        <div class="ps-icon ps-icon-orange">🔖</div>
+                                        <div class="ps-item-info">
+                                            <span class="ps-item-name">Tags</span>
+                                            <span class="ps-item-badge" id="status-tags">Default</span>
                                         </div>
                                     </div>
-                                    <div class="prompt-segmented" data-target="tags">
-                                        <button class="seg-btn active" data-mode="default">Default</button>
-                                        <button class="seg-btn" data-mode="custom">Custom</button>
+                                    <div class="ps-seg" data-target="tags">
+                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
                                 </div>
-                                <div class="prompt-card-body hidden" id="body-tags">
-                                    <textarea id="prompt-tags" class="prompt-input" rows="4" placeholder="Describe your tag generation rules...&#10;e.g. 13 tags, under 20 chars each, cover product type and gifting"></textarea>
-                                    <div class="prompt-card-footer">
-                                        <button class="prompt-history-btn" onclick="showPromptHistory('tags')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                                <div class="ps-item-expand hidden" id="body-tags">
+                                    <div class="ps-textarea-wrap">
+                                        <textarea id="prompt-tags" class="ps-textarea" rows="5" placeholder="e.g. Generate 13 Etsy tags, each under 20 characters. Cover product type, gifting occasions, and usage scenes. Comma-separated."></textarea>
+                                    </div>
+                                    <div class="ps-item-actions">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('tags')">
+                                            <i class="fas fa-clock-rotate-left"></i> History
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="prompt-card" data-section="attributes">
-                                <div class="prompt-card-top">
-                                    <div class="prompt-card-label">
-                                        <span class="prompt-card-icon">📋</span>
-                                        <div>
-                                            <span class="prompt-card-name">Attributes</span>
-                                            <span class="prompt-card-status" id="status-attributes">Default</span>
+                            <div class="ps-item" data-section="attributes">
+                                <div class="ps-item-row">
+                                    <div class="ps-item-left">
+                                        <div class="ps-icon ps-icon-purple">📋</div>
+                                        <div class="ps-item-info">
+                                            <span class="ps-item-name">Attributes</span>
+                                            <span class="ps-item-badge" id="status-attributes">Default</span>
                                         </div>
                                     </div>
-                                    <div class="prompt-segmented" data-target="attributes">
-                                        <button class="seg-btn active" data-mode="default">Default</button>
-                                        <button class="seg-btn" data-mode="custom">Custom</button>
+                                    <div class="ps-seg" data-target="attributes">
+                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
                                 </div>
-                                <div class="prompt-card-body hidden" id="body-attributes">
-                                    <textarea id="prompt-attributes" class="prompt-input" rows="4" placeholder="Describe which attributes to fill...&#10;e.g. Fill color, material, occasion, recipient based on product info"></textarea>
-                                    <div class="prompt-card-footer">
-                                        <button class="prompt-history-btn" onclick="showPromptHistory('attributes')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                                <div class="ps-item-expand hidden" id="body-attributes">
+                                    <div class="ps-textarea-wrap">
+                                        <textarea id="prompt-attributes" class="ps-textarea" rows="5" placeholder="e.g. Fill Etsy listing attributes: primary color, material, occasion, style, recipient. Only fill what's relevant."></textarea>
+                                    </div>
+                                    <div class="ps-item-actions">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('attributes')">
+                                            <i class="fas fa-clock-rotate-left"></i> History
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="prompt-bottom-bar">
-                            <button class="prompt-btn-reset" id="btn-reset-prompts"><i class="fas fa-arrow-rotate-left"></i> Reset All</button>
-                            <button class="prompt-btn-save" id="btn-save-prompts"><i class="fas fa-checkmark"></i> Save Settings</button>
+                        <!-- Footer -->
+                        <div class="ps-footer">
+                            <button class="ps-btn-reset" id="btn-reset-prompts">
+                                <i class="fas fa-arrow-rotate-left"></i> Reset All
+                            </button>
+                            <button class="ps-btn-save" id="btn-save-prompts">
+                                Save Settings
+                            </button>
                         </div>
                     </div>
 
                     <!-- Prompt History Modal -->
-                    <div id="prompt-history-modal" class="prompt-modal hidden">
-                        <div class="prompt-modal-backdrop" onclick="closePromptHistory()"></div>
-                        <div class="prompt-modal-content">
-                            <div class="prompt-modal-header">
+                    <div id="prompt-history-modal" class="ps-modal hidden">
+                        <div class="ps-modal-bg" onclick="closePromptHistory()"></div>
+                        <div class="ps-modal-box">
+                            <div class="ps-modal-top">
                                 <h3 id="prompt-history-modal-title">Prompt History</h3>
-                                <button class="prompt-modal-close" onclick="closePromptHistory()"><i class="fas fa-xmark"></i></button>
+                                <button class="ps-modal-x" onclick="closePromptHistory()"><i class="fas fa-xmark"></i></button>
                             </div>
-                            <div id="prompt-history-list" class="prompt-history-list"></div>
+                            <div id="prompt-history-list" class="ps-modal-list"></div>
                         </div>
                     </div>
                 </section>
