@@ -267,130 +267,79 @@
 
                 <!-- Prompt Settings -->
                 <section id="prompts-section" class="content-section hidden">
-                    <div class="ps-panel">
-                        <!-- Header -->
-                        <div class="ps-header">
-                            <div class="ps-header-text">
-                                <h2>Prompt Settings</h2>
-                                <p>Customize how AI generates each section of your listing copy.</p>
+                    <div class="ps-form">
+                        <div class="form-group">
+                            <label>🏷️ Title Prompt</label>
+                            <div class="ps-mode-row">
+                                <div class="ps-seg" data-target="title">
+                                    <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                    <button class="ps-seg-btn" data-mode="custom">Custom</button>
+                                </div>
+                                <span class="ps-item-badge" id="status-title">Default</span>
+                            </div>
+                            <div class="ps-expand hidden" id="body-title">
+                                <textarea id="prompt-title" class="ps-textarea" rows="4" placeholder="e.g. Generate 3 SEO-optimized Etsy titles under 140 characters. Include gift keywords."></textarea>
+                                <div class="ps-expand-foot">
+                                    <button class="ps-btn-history" onclick="showPromptHistory('title')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Cards -->
-                        <div class="ps-list">
-                            <div class="ps-item" data-section="title">
-                                <div class="ps-item-row">
-                                    <div class="ps-item-left">
-                                        <div class="ps-icon ps-icon-blue">🏷️</div>
-                                        <div class="ps-item-info">
-                                            <span class="ps-item-name">Title</span>
-                                            <span class="ps-item-badge" id="status-title">Default</span>
-                                        </div>
-                                    </div>
-                                    <div class="ps-seg" data-target="title">
-                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                    </div>
+                        <div class="form-group">
+                            <label>📝 Description Prompt</label>
+                            <div class="ps-mode-row">
+                                <div class="ps-seg" data-target="description">
+                                    <button class="ps-seg-btn active" data-mode="default">Default</button>
+                                    <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                 </div>
-                                <div class="ps-item-expand hidden" id="body-title">
-                                    <div class="ps-textarea-wrap">
-                                        <textarea id="prompt-title" class="ps-textarea" rows="5" placeholder="e.g. Generate 3 SEO-optimized Etsy titles under 140 characters. Include gift-related keywords like 'gift for her', 'birthday present'. Use natural American English."></textarea>
-                                    </div>
-                                    <div class="ps-item-actions">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('title')">
-                                            <i class="fas fa-clock-rotate-left"></i> History
-                                        </button>
-                                    </div>
+                                <span class="ps-item-badge" id="status-description">Default</span>
+                            </div>
+                            <div class="ps-expand hidden" id="body-description">
+                                <textarea id="prompt-description" class="ps-textarea" rows="6" placeholder="e.g. Write a warm, story-driven product description with promo tags, gifting suggestions, and a CTA."></textarea>
+                                <div class="ps-expand-foot">
+                                    <button class="ps-btn-history" onclick="showPromptHistory('description')"><i class="fas fa-clock-rotate-left"></i> History</button>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="ps-item" data-section="description">
-                                <div class="ps-item-row">
-                                    <div class="ps-item-left">
-                                        <div class="ps-icon ps-icon-green">📝</div>
-                                        <div class="ps-item-info">
-                                            <span class="ps-item-name">Description</span>
-                                            <span class="ps-item-badge" id="status-description">Default</span>
-                                        </div>
-                                    </div>
-                                    <div class="ps-seg" data-target="description">
-                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                    </div>
-                                </div>
-                                <div class="ps-item-expand hidden" id="body-description">
-                                    <div class="ps-textarea-wrap">
-                                        <textarea id="prompt-description" class="ps-textarea" rows="7" placeholder="e.g. Write a warm, story-driven product description. Include promo tags with emojis, emotional intro, gifting suggestions, customer reviews, and a compelling CTA."></textarea>
-                                    </div>
-                                    <div class="ps-item-actions">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('description')">
-                                            <i class="fas fa-clock-rotate-left"></i> History
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="ps-item" data-section="tags">
-                                <div class="ps-item-row">
-                                    <div class="ps-item-left">
-                                        <div class="ps-icon ps-icon-orange">🔖</div>
-                                        <div class="ps-item-info">
-                                            <span class="ps-item-name">Tags</span>
-                                            <span class="ps-item-badge" id="status-tags">Default</span>
-                                        </div>
-                                    </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>🔖 Tags Prompt</label>
+                                <div class="ps-mode-row">
                                     <div class="ps-seg" data-target="tags">
                                         <button class="ps-seg-btn active" data-mode="default">Default</button>
                                         <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
+                                    <span class="ps-item-badge" id="status-tags">Default</span>
                                 </div>
-                                <div class="ps-item-expand hidden" id="body-tags">
-                                    <div class="ps-textarea-wrap">
-                                        <textarea id="prompt-tags" class="ps-textarea" rows="5" placeholder="e.g. Generate 13 Etsy tags, each under 20 characters. Cover product type, gifting occasions, and usage scenes. Comma-separated."></textarea>
-                                    </div>
-                                    <div class="ps-item-actions">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('tags')">
-                                            <i class="fas fa-clock-rotate-left"></i> History
-                                        </button>
+                                <div class="ps-expand hidden" id="body-tags">
+                                    <textarea id="prompt-tags" class="ps-textarea" rows="4" placeholder="e.g. 13 tags, under 20 chars each, comma-separated."></textarea>
+                                    <div class="ps-expand-foot">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('tags')"><i class="fas fa-clock-rotate-left"></i> History</button>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="ps-item" data-section="attributes">
-                                <div class="ps-item-row">
-                                    <div class="ps-item-left">
-                                        <div class="ps-icon ps-icon-purple">📋</div>
-                                        <div class="ps-item-info">
-                                            <span class="ps-item-name">Attributes</span>
-                                            <span class="ps-item-badge" id="status-attributes">Default</span>
-                                        </div>
-                                    </div>
+                            <div class="form-group">
+                                <label>📋 Attributes Prompt</label>
+                                <div class="ps-mode-row">
                                     <div class="ps-seg" data-target="attributes">
                                         <button class="ps-seg-btn active" data-mode="default">Default</button>
                                         <button class="ps-seg-btn" data-mode="custom">Custom</button>
                                     </div>
+                                    <span class="ps-item-badge" id="status-attributes">Default</span>
                                 </div>
-                                <div class="ps-item-expand hidden" id="body-attributes">
-                                    <div class="ps-textarea-wrap">
-                                        <textarea id="prompt-attributes" class="ps-textarea" rows="5" placeholder="e.g. Fill Etsy listing attributes: primary color, material, occasion, style, recipient. Only fill what's relevant."></textarea>
-                                    </div>
-                                    <div class="ps-item-actions">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('attributes')">
-                                            <i class="fas fa-clock-rotate-left"></i> History
-                                        </button>
+                                <div class="ps-expand hidden" id="body-attributes">
+                                    <textarea id="prompt-attributes" class="ps-textarea" rows="4" placeholder="e.g. Fill color, material, occasion, recipient."></textarea>
+                                    <div class="ps-expand-foot">
+                                        <button class="ps-btn-history" onclick="showPromptHistory('attributes')"><i class="fas fa-clock-rotate-left"></i> History</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Footer -->
-                        <div class="ps-footer">
-                            <button class="ps-btn-reset" id="btn-reset-prompts">
-                                <i class="fas fa-arrow-rotate-left"></i> Reset All
-                            </button>
-                            <button class="ps-btn-save" id="btn-save-prompts">
-                                Save Settings
-                            </button>
+                        <div class="ps-actions">
+                            <button class="ps-btn-reset" id="btn-reset-prompts"><i class="fas fa-arrow-rotate-left"></i> Reset All</button>
+                            <button class="btn-primary ps-btn-save" id="btn-save-prompts"><i class="fas fa-check"></i> Save Settings</button>
                         </div>
                     </div>
 
