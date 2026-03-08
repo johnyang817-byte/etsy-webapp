@@ -539,15 +539,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const isSelected = historySelected.has(i);
         const isOpen = historyViewOpen.has(i);
         let html = `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
-          <div class="history-item-row" onclick="historyToggleView(${i})">
+          <div class="history-item-row">
             <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
-            <i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i>
-            <span class="history-item-name">${escapeHtml(item.product_name)}</span>
+            <div class="history-item-toggle" onclick="historyToggleView(${i})">
+              <i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i>
+            </div>
+            <span class="history-item-name" onclick="historyToggleView(${i})">${escapeHtml(item.product_name)}</span>
             <span class="history-item-date">${date}</span>
-          </div>`;
+          </div>
+          <div class="history-item-body ${isOpen ? '' : 'hidden'}" id="history-body-${i}">`;
         if (isOpen) {
           const s = parseSections(item.text);
-          html += `<div class="history-item-detail">`;
           if (s.title) html += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
           if (s.description) html += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
           if (s.tags) {
@@ -555,9 +557,8 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`;
           }
           if (s.attributes) html += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
-          html += `</div>`;
         }
-        html += `</div>`;
+        html += `</div></div>`;
         return html;
       }).join('');
   }
@@ -575,9 +576,40 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   window.historyToggleView = function (index) {
-    if (historyViewOpen.has(index)) historyViewOpen.delete(index);
-    else historyViewOpen.add(index);
-    renderHistory();
+    const body = document.getElementById('history-body-' + index);
+    if (!body) return;
+    const isOpen = historyViewOpen.has(index);
+
+    if (isOpen) {
+      // 收起：隐藏内容
+      body.classList.add('hidden');
+      historyViewOpen.delete(index);
+      // 更新箭头
+      const row = body.previousElementSibling;
+      const icon = row.querySelector('.history-toggle-icon');
+      if (icon) { icon.classList.replace('fa-chevron-down', 'fa-chevron-right'); }
+    } else {
+      // 展开：填充内容并显示
+      historyViewOpen.add(index);
+      const history = getHistory();
+      const item = history[index];
+      if (!item) return;
+      const s = parseSections(item.text);
+      let content = '';
+      if (s.title) content += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
+      if (s.description) content += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
+      if (s.tags) {
+        const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean);
+        content += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`;
+      }
+      if (s.attributes) content += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
+      body.innerHTML = content;
+      body.classList.remove('hidden');
+      // 更新箭头
+      const row = body.previousElementSibling;
+      const icon = row.querySelector('.history-toggle-icon');
+      if (icon) { icon.classList.replace('fa-chevron-right', 'fa-chevron-down'); }
+    }
   };
 
   window.removeHistorySelected = function () {
