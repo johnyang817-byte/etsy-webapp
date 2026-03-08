@@ -9,10 +9,13 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // ========== 用户系统（localStorage 模拟，后续接真实后端） ==========
-  const AUTH_KEY = 'etsycopy_user';
-  const HISTORY_KEY = 'etsycopy_history';
-  const USAGE_KEY = 'etsycopy_usage';
-  const PROMPTS_KEY = 'listingpaw_prompts';
+  const AUTH_KEY = 'listingpaw_user';
+
+  function getUserKey(suffix) {
+    const user = getUser();
+    const uid = user?.email || 'guest';
+    return 'listingpaw_' + uid + '_' + suffix;
+  }
 
   function getUser() {
     try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
@@ -21,18 +24,18 @@ document.addEventListener('DOMContentLoaded', function () {
   function setUser(user) { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); }
 
   function getHistory() {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(getUserKey('history'))) || []; } catch { return []; }
   }
 
   function saveHistory(item) {
     const history = getHistory();
     history.unshift({ ...item, date: new Date().toISOString() });
     if (history.length > 200) history.length = 200;
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(getUserKey('history'), JSON.stringify(history));
   }
 
   function getUsage() {
-    const data = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+    const data = JSON.parse(localStorage.getItem(getUserKey('usage')) || '{}');
     const month = new Date().toISOString().slice(0, 7);
     if (data.month !== month) return { month, count: 0 };
     return data;
@@ -41,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function addUsage() {
     const usage = getUsage();
     usage.count++;
-    localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+    localStorage.setItem(getUserKey('usage'), JSON.stringify(usage));
     return usage;
   }
 
@@ -54,11 +57,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const plan = getPlan();
     if (plan === 'unlimited') return Infinity;
     if (plan === 'pro') return 100;
-    return 5;
+    return 20;
   }
 
   function canGenerate() {
     return getUsage().count < getLimit();
+  }
+
+  function getSavedPrompts() {
+    try { return JSON.parse(localStorage.getItem(getUserKey('prompts'))) || {}; } catch { return {}; }
   }
 
   // ========== 注册 ==========
@@ -71,10 +78,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (pw.length < 6) { alert('Password must be at least 6 characters'); return; }
 
     // 模拟注册（后续接真实 API）
-    const users = JSON.parse(localStorage.getItem('etsycopy_users') || '{}');
+    const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
     if (users[email]) { alert('Email already registered. Please log in.'); return; }
     users[email] = { email, password: btoa(pw), plan: 'free', created: new Date().toISOString() };
-    localStorage.setItem('etsycopy_users', JSON.stringify(users));
+    localStorage.setItem('listingpaw_users', JSON.stringify(users));
     setUser({ email, plan: 'free' });
     showPage('dashboard');
   });
@@ -84,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim();
     const pw = document.getElementById('login-password').value;
-    const users = JSON.parse(localStorage.getItem('etsycopy_users') || '{}');
+    const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
     if (!users[email] || users[email].password !== btoa(pw)) {
       alert('Invalid email or password'); return;
     }
@@ -622,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!confirm(`Remove ${historySelected.size} item(s) from history?`)) return;
     const history = getHistory();
     const remaining = history.filter((_, i) => !historySelected.has(i));
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(remaining));
+    localStorage.setItem(getUserKey('history'), JSON.stringify(remaining));
     historySelected.clear();
     historyViewOpen.clear();
     renderHistory();
@@ -656,10 +663,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Prompt Settings ==========
   const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
-
-  function getSavedPrompts() {
-    try { return JSON.parse(localStorage.getItem(PROMPTS_KEY)) || {}; } catch { return {}; }
-  }
 
   function getCustomPrompts() {
     const saved = getSavedPrompts();
@@ -712,14 +715,14 @@ document.addEventListener('DOMContentLoaded', function () {
         text: textarea.value
       };
     });
-    localStorage.setItem(PROMPTS_KEY, JSON.stringify(prompts));
+    localStorage.setItem(getUserKey('prompts'), JSON.stringify(prompts));
     alert('Prompt settings saved!');
   });
 
   // Reset prompts
   document.getElementById('btn-reset-prompts').addEventListener('click', () => {
     if (!confirm('Reset all prompts to default?')) return;
-    localStorage.removeItem(PROMPTS_KEY);
+    localStorage.removeItem(getUserKey('prompts'));
     loadPromptSettings();
     alert('All prompts reset to default.');
   });
