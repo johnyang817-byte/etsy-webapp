@@ -14,11 +14,13 @@
             <a class="nav-brand" href="#" onclick="showPage('landing');return false;">
                 <i class="fas fa-paw"></i> ListingPaw AI
             </a>
-            <div class="nav-links">
+            <div class="nav-links" id="landing-nav-links">
                 <a href="#features">Features</a>
                 <a href="#pricing">Pricing</a>
-                <button class="btn-nav" onclick="showPage('login')">Log In</button>
-                <button class="btn-nav btn-nav-primary" onclick="showPage('signup')">Start Free</button>
+                <button class="btn-nav" id="landing-btn-login" onclick="showPage('login')">Log In</button>
+                <button class="btn-nav btn-nav-primary" id="landing-btn-signup" onclick="showPage('signup')">Start Free</button>
+                <button class="btn-nav" id="landing-btn-dashboard" onclick="showPage('dashboard')" class="hidden">Dashboard</button>
+                <button class="btn-nav" id="landing-btn-logout" class="hidden">Log Out</button>
             </div>
         </nav>
 

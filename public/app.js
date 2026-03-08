@@ -5,8 +5,22 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById('page-' + page).classList.remove('hidden');
     if (page === 'dashboard') refreshDashboard();
+    updateLandingNav();
     window.scrollTo(0, 0);
   };
+
+  function updateLandingNav() {
+    const user = getUser();
+    const loggedIn = !!user;
+    const btnLogin = document.getElementById('landing-btn-login');
+    const btnSignup = document.getElementById('landing-btn-signup');
+    const btnDashboard = document.getElementById('landing-btn-dashboard');
+    const btnLogout = document.getElementById('landing-btn-logout');
+    if (btnLogin) btnLogin.classList.toggle('hidden', loggedIn);
+    if (btnSignup) btnSignup.classList.toggle('hidden', loggedIn);
+    if (btnDashboard) btnDashboard.classList.toggle('hidden', !loggedIn);
+    if (btnLogout) btnLogout.classList.toggle('hidden', !loggedIn);
+  }
 
   // ========== 用户系统（localStorage 模拟，后续接真实后端） ==========
   const AUTH_KEY = 'listingpaw_user';
@@ -100,10 +114,14 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ========== 登出 ==========
-  document.getElementById('btn-logout').addEventListener('click', () => {
+  function doLogout() {
     localStorage.removeItem(AUTH_KEY);
+    updateLandingNav();
     showPage('landing');
-  });
+  }
+
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
+  document.getElementById('landing-btn-logout').addEventListener('click', doLogout);
 
   // ========== Dashboard 刷新 ==========
   function refreshDashboard() {
@@ -742,8 +760,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ========== 初始化 ==========
-  const user = getUser();
-  if (user) {
+  updateLandingNav();
+  const initUser = getUser();
+  if (initUser) {
     showPage('dashboard');
   } else {
     showPage('landing');
