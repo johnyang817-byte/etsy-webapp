@@ -68,7 +68,7 @@ export default async function handler(req, res) {
   
     // ============== 从环境变量获取 API Key 和模型 ==============
     const apiKey = process.env.DASHSCOPE_API_KEY;
-    const model = process.env.DASHSCOPE_MODEL || 'Qwen3.5-Plus';  // 改为 Qwen3.5-Plus
+    const model = process.env.DASHSCOPE_MODEL || 'qwen-turbo';
   
     if (!apiKey) {
         console.error('DASHSCOPE_API_KEY is not set');
