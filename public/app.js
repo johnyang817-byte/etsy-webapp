@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const AUTH_KEY = 'etsycopy_user';
   const HISTORY_KEY = 'etsycopy_history';
   const USAGE_KEY = 'etsycopy_usage';
+  const PROMPTS_KEY = 'listingpaw_prompts';
 
   function getUser() {
     try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
@@ -125,9 +126,11 @@ document.addEventListener('DOMContentLoaded', function () {
     modeCsv: document.getElementById('mode-csv'),
     modeManual: document.getElementById('mode-manual'),
     modeHistory: document.getElementById('mode-history'),
+    modePrompts: document.getElementById('mode-prompts'),
     csvSection: document.getElementById('csv-section'),
     manualSection: document.getElementById('manual-section'),
     historySection: document.getElementById('history-section'),
+    promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
     generateAllBtn: document.getElementById('generate-all'),
     dropZone: document.getElementById('drop-zone'),
@@ -147,11 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 模式切换 ==========
   function switchMode(mode) {
-    ['csv', 'manual', 'history'].forEach(m => {
+    ['csv', 'manual', 'history', 'prompts'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
-      btn.classList.toggle('active', m === mode);
-      sec.classList.toggle('hidden', m !== mode);
+      if (btn) btn.classList.toggle('active', m === mode);
+      if (sec) sec.classList.toggle('hidden', m !== mode);
     });
     el.generateSection.classList.add('hidden');
     el.resultSection.classList.add('hidden');
@@ -160,11 +163,13 @@ document.addEventListener('DOMContentLoaded', function () {
       el.generateSection.classList.remove('hidden');
     }
     if (mode === 'history') renderHistory();
+    if (mode === 'prompts') loadPromptSettings();
   }
 
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeManual.addEventListener('click', () => switchMode('manual'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
+  el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
   // ========== CSV 上传 ==========
   el.dropZone.addEventListener('click', () => {
@@ -317,10 +322,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // ========== API 调用 ==========
   async function callApi(product) {
     try {
+      const customPrompts = getCustomPrompts();
+      const body = { product };
+      if (customPrompts) body.customPrompts = customPrompts;
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
@@ -646,6 +654,76 @@ document.addEventListener('DOMContentLoaded', function () {
     historyToggleView(index);
   };
 
+  // ========== Prompt Settings ==========
+  const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
+
+  function getSavedPrompts() {
+    try { return JSON.parse(localStorage.getItem(PROMPTS_KEY)) || {}; } catch { return {}; }
+  }
+
+  function getCustomPrompts() {
+    const saved = getSavedPrompts();
+    const result = {};
+    PROMPT_SECTIONS.forEach(key => {
+      if (saved[key]?.mode === 'custom' && saved[key]?.text?.trim()) {
+        result[key] = saved[key].text.trim();
+      }
+    });
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
+  function loadPromptSettings() {
+    const saved = getSavedPrompts();
+    PROMPT_SECTIONS.forEach(key => {
+      const textarea = document.getElementById('prompt-' + key);
+      const isCustom = saved[key]?.mode === 'custom';
+      textarea.value = saved[key]?.text || '';
+      textarea.classList.toggle('hidden', !isCustom);
+      // Update toggle buttons
+      document.querySelectorAll(`.prompt-mode-btn[data-target="${key}"]`).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === (isCustom ? 'custom' : 'default'));
+      });
+    });
+  }
+
+  // Prompt toggle buttons
+  document.querySelectorAll('.prompt-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      const mode = btn.dataset.mode;
+      const textarea = document.getElementById('prompt-' + target);
+      // Update active state
+      document.querySelectorAll(`.prompt-mode-btn[data-target="${target}"]`).forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+      textarea.classList.toggle('hidden', mode === 'default');
+      if (mode === 'custom') textarea.focus();
+    });
+  });
+
+  // Save prompts
+  document.getElementById('btn-save-prompts').addEventListener('click', () => {
+    const prompts = {};
+    PROMPT_SECTIONS.forEach(key => {
+      const textarea = document.getElementById('prompt-' + key);
+      const activeBtn = document.querySelector(`.prompt-mode-btn[data-target="${key}"].active`);
+      prompts[key] = {
+        mode: activeBtn?.dataset.mode || 'default',
+        text: textarea.value
+      };
+    });
+    localStorage.setItem(PROMPTS_KEY, JSON.stringify(prompts));
+    alert('Prompt settings saved!');
+  });
+
+  // Reset prompts
+  document.getElementById('btn-reset-prompts').addEventListener('click', () => {
+    if (!confirm('Reset all prompts to default?')) return;
+    localStorage.removeItem(PROMPTS_KEY);
+    loadPromptSettings();
+    alert('All prompts reset to default.');
+  });
+
   // ========== 工具 ==========
   function showLoading(show) {
     el.loading.classList.toggle('hidden', !show);
@@ -656,6 +734,7 @@ document.addEventListener('DOMContentLoaded', function () {
     el.resultSection.classList.add('hidden');
     if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
+    else if (el.modePrompts.classList.contains('active')) switchMode('prompts');
     else switchMode('manual');
   });
 

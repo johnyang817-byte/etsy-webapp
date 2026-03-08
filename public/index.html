@@ -202,6 +202,9 @@
                     <button id="mode-history" class="mode-btn">
                         <i class="fas fa-clock-rotate-left"></i> History
                     </button>
+                    <button id="mode-prompts" class="mode-btn">
+                        <i class="fas fa-sliders"></i> Prompt Settings
+                    </button>
                 </section>
 
                 <!-- CSV 上传区域 -->
@@ -258,6 +261,60 @@
                 <section id="history-section" class="content-section hidden">
                     <div id="history-list"></div>
                     <p id="history-empty" class="empty-state">No history yet. Generate your first listing copy!</p>
+                </section>
+
+                <!-- Prompt Settings -->
+                <section id="prompts-section" class="content-section hidden">
+                    <div class="prompt-settings">
+                        <div class="prompt-block">
+                            <div class="prompt-block-header">
+                                <span>🏷️ Title Prompt</span>
+                                <div class="prompt-toggle">
+                                    <button class="prompt-mode-btn active" data-target="title" data-mode="default">Default</button>
+                                    <button class="prompt-mode-btn" data-target="title" data-mode="custom">Custom</button>
+                                </div>
+                            </div>
+                            <textarea id="prompt-title" class="prompt-textarea hidden" rows="4" placeholder="Enter your custom Title prompt..."></textarea>
+                        </div>
+
+                        <div class="prompt-block">
+                            <div class="prompt-block-header">
+                                <span>📝 Description Prompt</span>
+                                <div class="prompt-toggle">
+                                    <button class="prompt-mode-btn active" data-target="description" data-mode="default">Default</button>
+                                    <button class="prompt-mode-btn" data-target="description" data-mode="custom">Custom</button>
+                                </div>
+                            </div>
+                            <textarea id="prompt-description" class="prompt-textarea hidden" rows="6" placeholder="Enter your custom Description prompt..."></textarea>
+                        </div>
+
+                        <div class="prompt-block">
+                            <div class="prompt-block-header">
+                                <span>🔖 Tags Prompt</span>
+                                <div class="prompt-toggle">
+                                    <button class="prompt-mode-btn active" data-target="tags" data-mode="default">Default</button>
+                                    <button class="prompt-mode-btn" data-target="tags" data-mode="custom">Custom</button>
+                                </div>
+                            </div>
+                            <textarea id="prompt-tags" class="prompt-textarea hidden" rows="4" placeholder="Enter your custom Tags prompt..."></textarea>
+                        </div>
+
+                        <div class="prompt-block">
+                            <div class="prompt-block-header">
+                                <span>📋 Attributes Prompt</span>
+                                <div class="prompt-toggle">
+                                    <button class="prompt-mode-btn active" data-target="attributes" data-mode="default">Default</button>
+                                    <button class="prompt-mode-btn" data-target="attributes" data-mode="custom">Custom</button>
+                                </div>
+                            </div>
+                            <textarea id="prompt-attributes" class="prompt-textarea hidden" rows="4" placeholder="Enter your custom Attributes prompt..."></textarea>
+                        </div>
+
+                        <div class="prompt-actions">
+                            <button class="btn-save-prompts" id="btn-save-prompts"><i class="fas fa-check"></i> Save Settings</button>
+                            <button class="btn-reset-prompts" id="btn-reset-prompts"><i class="fas fa-rotate-left"></i> Reset All to Default</button>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- CSV 批量生成按钮 -->

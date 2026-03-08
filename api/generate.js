@@ -16,8 +16,8 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    let product;
-    try { product = req.body.product; } catch (e) {
+    let product, customPrompts;
+    try { product = req.body.product; customPrompts = req.body.customPrompts || null; } catch (e) {
         return res.status(400).json({ success: false, error: 'Invalid JSON body' });
     }
     if (!product || !product.product_name || !product.product_name.trim()) {
@@ -35,20 +35,14 @@ export default async function handler(req, res) {
 - 颜色：${product.color || ''}
 - 适用场景：${product.occasion || ''}`;
 
-    const prompt = `你是一名美国本土 Etsy SEO 文案专家。请根据以下产品信息，生成完整的 Etsy Listing 文案。不要限制字数，尽量丰富详尽。
-
-产品信息：
-${productInfo}
-
-请严格按照以下四个板块输出，每个板块用 【板块名】 标记开头：
-
-【标题】
+    // Default prompts for each section
+    const defaultTitle = `【标题】
 生成 3 个 Etsy 英文标题（每个 140 字符以内），爆款结构要求：
 - 符合 Etsy 搜索逻辑，美式自然表达
 - 包含送礼关键词（如 gift, present, for her, for him, birthday, christmas 等）
-- 符合 Etsy 平台规范，不要有敏感词汇
+- 符合 Etsy 平台规范，不要有敏感词汇`;
 
-【描述】
+    const defaultDescription = `【描述】
 请用美式电商风格写一整套丰富的 Etsy 产品描述，语气温暖、真诚、有感染力，不要像广告。我们是定制产品，描述去品牌化，不提品牌故事。必须包含以下完整结构：
 
 1. 【促销标签行】3-5个卖点标签，用表情符号（🌟 New Arrival | ✨ Free Shipping | 🏷️ 40% OFF Sale | 🎁 Ready to Gift）
@@ -61,18 +55,18 @@ ${productInfo}
 8. 【客户评价】加入两句模拟客户评价，最好有男也有女客户，美国人名字
 9. 【结尾号召】诗意化结尾 + "Add to cart today" 行动号召 + 紧迫感
 
-使用 emoji 增加视觉吸引力。材质/尺寸如不确定写 "See photos"。
+使用 emoji 增加视觉吸引力。材质/尺寸如不确定写 "See photos"。`;
 
-【标签】
+    const defaultTags = `【标签】
 根据 Etsy 美国市场搜索习惯和 2026 Etsy 热搜词，生成 13 个 Etsy Tags：
 - 每个标签严格不超过 20 个字符
 - 用逗号隔开以便直接上传
 - 覆盖：产品类型 / 送礼 / 使用场景
 - 避免重复关键词
 - 可适当加入生动的表情符号
-- 符合 Etsy 平台规范，避免敏感词汇
+- 符合 Etsy 平台规范，避免敏感词汇`;
 
-【属性】
+    const defaultAttributes = `【属性】
 帮我根据产品信息填写 Etsy Listing 中的 Attributes，不一定需要全部填写，根据实际情况判断，不确定的可以不填。常见属性包括：
 - Primary color
 - Secondary color
@@ -83,6 +77,27 @@ ${productInfo}
 - Recipient
 - Theme
 等，请根据产品实际情况选择合适的属性填写。`;
+
+    // Build prompt: use custom if provided, otherwise default
+    const titleSection = customPrompts?.title ? `【标题】\n${customPrompts.title}` : defaultTitle;
+    const descSection = customPrompts?.description ? `【描述】\n${customPrompts.description}` : defaultDescription;
+    const tagsSection = customPrompts?.tags ? `【标签】\n${customPrompts.tags}` : defaultTags;
+    const attrSection = customPrompts?.attributes ? `【属性】\n${customPrompts.attributes}` : defaultAttributes;
+
+    const prompt = `你是一名美国本土 Etsy SEO 文案专家。请根据以下产品信息，生成完整的 Etsy Listing 文案。不要限制字数，尽量丰富详尽。
+
+产品信息：
+${productInfo}
+
+请严格按照以下四个板块输出，每个板块用 【板块名】 标记开头：
+
+${titleSection}
+
+${descSection}
+
+${tagsSection}
+
+${attrSection}`;
 
     try {
         const apiRes = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
