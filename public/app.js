@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo(0, 0);
   };
 
+  // If logged in → dashboard, otherwise → signup
+  window.goToApp = function () {
+    showPage(getUser() ? 'dashboard' : 'signup');
+  };
+
   function updateLandingNav() {
     const user = getUser();
     const loggedIn = !!user;
