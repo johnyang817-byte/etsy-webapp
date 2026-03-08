@@ -1,6 +1,5 @@
 // Etsy 文案助手 - app.js
 document.addEventListener('DOMContentLoaded', function () {
-  // DOM 元素
   const el = {
     modeCsv: document.getElementById('mode-csv'),
     modeManual: document.getElementById('mode-manual'),
@@ -52,23 +51,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!file.name.endsWith('.csv')) { alert('请上传 CSV 文件'); return; }
     el.fileName.textContent = file.name;
     el.loading.classList.remove('hidden');
-
     try {
       let text = await file.text();
       if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-
       const lines = text.split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) { alert('CSV 文件内容为空或格式不正确'); return; }
-
       const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
       csvProducts = [];
-
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
         const row = {};
         headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
-
         const product = {
           product_name: (row['product_name_en'] || row['product_name'] || row['Product Name'] || row['产品名称'] || row['product_name_cn'] || '').trim(),
           keywords: [row['keywords'] || row['关键词'], row['technique'] || row['工艺'], row['target_audience'] || row['目标客户'], row['usage_scene'] || row['使用场景']].filter(Boolean).join(', '),
@@ -79,9 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         if (product.product_name) csvProducts.push(product);
       }
-
-      if (csvProducts.length === 0) { alert('CSV 中没有有效的产品数据，请检查列名'); return; }
-
+      if (csvProducts.length === 0) { alert('CSV 中没有有效的产品数据'); return; }
       el.productList.innerHTML = csvProducts.map(p =>
         `<div class="product-item"><i class="fas fa-check-circle"></i> ${p.product_name}</div>`
       ).join('');
@@ -107,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
       occasion: document.getElementById('manual-occasion').value.trim()
     };
     if (!product.product_name) { alert('请填写产品名称'); return; }
-
     showLoading(true);
     try {
       const result = await callApi(product);
@@ -147,81 +138,137 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // ========== 解析四板块结果 ==========
+  function parseSections(text) {
+    const sections = { title: '', description: '', tags: '', attributes: '' };
+    const markers = [
+      { key: 'title', regex: /【标题】/i },
+      { key: 'description', regex: /【描述】/i },
+      { key: 'tags', regex: /【标签】/i },
+      { key: 'attributes', regex: /【属性】/i }
+    ];
+
+    // 找到每个板块的位置
+    const positions = markers.map(m => {
+      const match = text.match(m.regex);
+      return { key: m.key, index: match ? match.index : -1 };
+    }).filter(p => p.index >= 0).sort((a, b) => a.index - b.index);
+
+    for (let i = 0; i < positions.length; i++) {
+      const start = positions[i].index + text.match(markers.find(m => m.key === positions[i].key).regex)[0].length;
+      const end = i + 1 < positions.length ? positions[i + 1].index : text.length;
+      sections[positions[i].key] = text.slice(start, end).trim();
+    }
+
+    // 如果没有匹配到板块标记，整体作为描述
+    if (positions.length === 0) {
+      sections.description = text;
+    }
+
+    return sections;
+  }
+
   // ========== 显示结果 ==========
   function showResults(results) {
     el.resultContent.innerHTML = results.map((item, i) => {
       if (item.error) {
-        return `<div class="result-block"><h3><i class="fas fa-exclamation-triangle"></i> 失败：${item.product.product_name}</h3><p style="color:#e53e3e;">${item.error}</p></div>`;
+        return `<div class="result-block"><h3>❌ 失败：${item.product.product_name}</h3><p style="color:#e53e3e;">${item.error}</p></div>`;
       }
-      return parseResultHtml(item.text, i);
+      return buildResultHtml(item, i);
     }).join('');
     el.resultSection.classList.remove('hidden');
     el.resultSection.scrollIntoView({ behavior: 'smooth' });
   }
 
-  function parseResultHtml(text, index) {
-    const lines = text.split('\n');
-    let title = '', description = '', tags = '', section = null;
+  function buildResultHtml(item, index) {
+    const s = parseSections(item.text);
+    const productName = item.product.product_name;
 
-    lines.forEach(line => {
-      if (/^标题[：:]/.test(line)) { section = 'title'; title = line.replace(/^标题[：:]\s*/, ''); }
-      else if (/^描述[：:]/.test(line)) { section = 'desc'; description = line.replace(/^描述[：:]\s*/, ''); }
-      else if (/^标签[：:]/.test(line)) { section = 'tags'; tags = line.replace(/^标签[：:]\s*/, ''); }
-      else if (section && line.trim()) {
-        if (section === 'title') title += ' ' + line.trim();
-        else if (section === 'desc') description += '\n' + line.trim();
-        else if (section === 'tags') tags += ' ' + line.trim();
-      }
-    });
+    let html = `<div class="result-product">
+      <h2 class="result-product-title">📦 ${productName}</h2>`;
 
-    if (!title && !description && !tags) {
-      return `<div class="result-block"><h3>产品 ${index + 1}</h3><pre style="white-space:pre-wrap;font-size:0.85rem;">${text}</pre></div>`;
+    // 标题板块
+    if (s.title) {
+      html += `<div class="result-block">
+        <div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy 标题（3个选项）</span>
+          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
+        <div class="block-content copyable">${formatText(s.title)}</div>
+      </div>`;
     }
 
-    const tagArray = tags.split(/[,，\s]+/).filter(Boolean);
-    const safeTitle = title.replace(/'/g, "\\'");
-    const safeDesc = description.replace(/'/g, "\\'");
-    const safeTags = tagArray.map(t => '#' + t).join(' ').replace(/'/g, "\\'");
-
-    return `
-      <div class="result-block">
-        <h3>产品 ${index + 1}</h3>
-        <div style="margin-bottom:10px">
-          <strong>标题：</strong>
-          <div style="background:white;padding:8px;border-radius:4px;margin-top:5px;display:flex;justify-content:space-between;align-items:center;">
-            <span>${title}</span>
-            <button class="copy-btn" onclick="copyToClipboard('${safeTitle}')">复制</button>
-          </div>
-        </div>
-        <div style="margin-bottom:10px">
-          <strong>描述：</strong>
-          <div style="background:white;padding:8px;border-radius:4px;margin-top:5px;position:relative;">
-            <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${description}</pre>
-            <button class="copy-btn" onclick="copyToClipboard('${safeDesc}')">复制</button>
-          </div>
-        </div>
-        <div>
-          <strong>标签：</strong>
-          <div class="tags-container" style="margin-top:5px">${tagArray.map(t => `<span class="tag">#${t}</span>`).join('')}</div>
-          <button class="copy-btn" style="margin-top:5px" onclick="copyToClipboard('${safeTags}')">复制全部标签</button>
-        </div>
+    // 描述板块
+    if (s.description) {
+      html += `<div class="result-block">
+        <div class="block-header"><span class="block-icon">📝</span><span class="block-label">产品描述</span>
+          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
+        <div class="block-content copyable">${formatText(s.description)}</div>
       </div>`;
+    }
+
+    // 标签板块
+    if (s.tags) {
+      const tagLine = s.tags.replace(/\n/g, ' ').trim();
+      html += `<div class="result-block">
+        <div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Etsy 标签（13个）</span>
+          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
+        <div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div>
+          <div class="tags-raw">${escapeHtml(tagLine)}</div></div>
+      </div>`;
+    }
+
+    // 属性板块
+    if (s.attributes) {
+      html += `<div class="result-block">
+        <div class="block-header"><span class="block-icon">📋</span><span class="block-label">Listing 属性</span>
+          <button class="copy-btn" onclick="copyText(this)">📋 复制</button></div>
+        <div class="block-content copyable">${formatText(s.attributes)}</div>
+      </div>`;
+    }
+
+    html += '</div>';
+    return html;
   }
+
+  function formatText(text) {
+    return escapeHtml(text)
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderTags(tagLine) {
+    // 提取逗号分隔的标签
+    const tags = tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean);
+    return tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('');
+  }
+
+  // ========== 复制功能 ==========
+  window.copyText = function (btn) {
+    const content = btn.closest('.result-block').querySelector('.copyable');
+    // 获取纯文本
+    const text = content.innerText || content.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✅ 已复制';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      const orig = btn.textContent;
+      btn.textContent = '✅ 已复制';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    });
+  };
 
   // ========== 工具函数 ==========
   function showLoading(show) {
     el.loading.classList.toggle('hidden', !show);
     if (show) el.resultSection.classList.add('hidden');
   }
-
-  window.copyToClipboard = function (text) {
-    navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板！')).catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
-      alert('已复制到剪贴板！');
-    });
-  };
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
