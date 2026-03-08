@@ -167,7 +167,10 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modeHistory.addEventListener('click', () => switchMode('history'));
 
   // ========== CSV 上传 ==========
-  el.dropZone.addEventListener('click', () => el.csvInput.click());
+  el.dropZone.addEventListener('click', () => {
+    el.csvInput.value = '';  // 清空以允许重新选择同一文件
+    el.csvInput.click();
+  });
   el.dropZone.addEventListener('dragover', e => { e.preventDefault(); el.dropZone.style.background = '#e0e7ff'; });
   el.dropZone.addEventListener('dragleave', () => { el.dropZone.style.background = 'white'; });
   el.dropZone.addEventListener('drop', e => {
@@ -176,6 +179,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
   });
   el.csvInput.addEventListener('change', e => { if (e.target.files.length) handleCsvFile(e.target.files[0]); });
+
+  let csvProductSelected = []; // 记录每个产品的勾选状态
 
   async function handleCsvFile(file) {
     if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file'); return; }
@@ -203,15 +208,50 @@ document.addEventListener('DOMContentLoaded', function () {
         if (product.product_name) csvProducts.push(product);
       }
       if (csvProducts.length === 0) { alert('No valid products found in CSV'); return; }
-      el.productList.innerHTML = csvProducts.map(p =>
-        `<div class="product-item"><i class="fas fa-check-circle"></i> ${p.product_name}</div>`
-      ).join('');
+      csvProductSelected = csvProducts.map(() => true);
+      renderProductList();
       el.csvPreview.classList.remove('hidden');
       el.generateSection.classList.remove('hidden');
-      el.productCount.textContent = csvProducts.length;
+      updateSelectedCount();
     } catch (err) {
       alert('CSV parse error: ' + err.message);
     }
+  }
+
+  function renderProductList() {
+    el.productList.innerHTML =
+      `<div class="product-select-all">
+        <label><input type="checkbox" id="select-all-cb" ${csvProductSelected.every(Boolean) ? 'checked' : ''} onchange="toggleSelectAll(this.checked)"> Select All (${csvProducts.length})</label>
+        <button class="btn-reupload" onclick="document.getElementById('csv-input').value='';document.getElementById('csv-input').click()"><i class="fas fa-sync-alt"></i> Re-upload</button>
+      </div>` +
+      csvProducts.map((p, i) =>
+        `<div class="product-item ${csvProductSelected[i] ? '' : 'product-unchecked'}" onclick="toggleProduct(${i})">
+          <input type="checkbox" ${csvProductSelected[i] ? 'checked' : ''} onclick="event.stopPropagation();toggleProduct(${i})">
+          <span>${escapeHtml(p.product_name)}</span>
+        </div>`
+      ).join('');
+  }
+
+  window.toggleProduct = function (index) {
+    csvProductSelected[index] = !csvProductSelected[index];
+    renderProductList();
+    updateSelectedCount();
+  };
+
+  window.toggleSelectAll = function (checked) {
+    csvProductSelected = csvProductSelected.map(() => checked);
+    renderProductList();
+    updateSelectedCount();
+  };
+
+  function updateSelectedCount() {
+    const count = csvProductSelected.filter(Boolean).length;
+    el.productCount.textContent = count;
+    el.generateAllBtn.disabled = count === 0;
+  }
+
+  function getSelectedProducts() {
+    return csvProducts.filter((_, i) => csvProductSelected[i]);
   }
 
   // ========== 手动输入 ==========
@@ -248,14 +288,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== CSV 批量生成 ==========
   el.generateAllBtn.addEventListener('click', async () => {
-    if (csvProducts.length === 0) { alert('No products to generate'); return; }
+    const selected = getSelectedProducts();
+    if (selected.length === 0) { alert('No products selected'); return; }
     const remaining = getLimit() - getUsage().count;
     if (remaining <= 0) {
       alert('You have reached your monthly limit. Please upgrade your plan.');
       return;
     }
-    const toGenerate = csvProducts.slice(0, remaining);
-    if (toGenerate.length < csvProducts.length) {
+    const toGenerate = selected.slice(0, remaining);
+    if (toGenerate.length < selected.length) {
       if (!confirm(`You can only generate ${remaining} more this month. Continue with the first ${remaining} products?`)) return;
     }
     showLoading(true);

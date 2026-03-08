@@ -492,17 +492,76 @@ body {
 }
 
 .product-item {
-    padding: 8px 12px;
+    padding: 10px 12px;
     background: #f7fafc;
     border-radius: 8px;
     margin-bottom: 5px;
     font-size: 0.85rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
 }
 
-.product-item i { color: #48bb78; }
+.product-item:hover { background: #edf2f7; }
+
+.product-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #667eea;
+    flex-shrink: 0;
+}
+
+.product-item.product-unchecked {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+.product-select-all {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.product-select-all label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.product-select-all input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #667eea;
+    cursor: pointer;
+}
+
+.btn-reupload {
+    padding: 5px 12px;
+    background: white;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: #667eea;
+    transition: all 0.2s;
+}
+
+.btn-reupload:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
 
 .form-group {
     margin-bottom: 15px;
