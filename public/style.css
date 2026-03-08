@@ -52,6 +52,10 @@ body {
     font-weight: 700;
     color: var(--text);
     letter-spacing: -0.02em;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
 }
 
 .nav-brand i { margin-right: 6px; color: var(--accent); }
