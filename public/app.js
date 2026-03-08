@@ -355,23 +355,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 显示结果 ==========
   let lastResults = []; // 保存最近一次生成结果用于导出
+  let resultExportSelected = []; // 每个结果的勾选状态
 
   function showResults(results) {
     lastResults = results.filter(r => !r.error);
+    resultExportSelected = lastResults.map(() => true);
     el.resultContent.innerHTML =
       `<div class="result-toolbar">
         <button class="btn-toggle-all" onclick="toggleAllProducts(true)"><i class="fas fa-chevron-down"></i> Expand All</button>
         <button class="btn-toggle-all" onclick="toggleAllProducts(false)"><i class="fas fa-chevron-up"></i> Collapse All</button>
-        <button class="btn-export-results" onclick="exportResultsCsv()"><i class="fas fa-download"></i> Export All as CSV</button>
+        <button class="btn-export-results" onclick="exportResultsCsv()"><i class="fas fa-download"></i> Export Selected as CSV (<span id="export-count">${lastResults.length}</span>)</button>
       </div>` +
       results.map((item, i) => {
         if (item.error) {
           return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${escapeHtml(item.product.product_name)}</span></div><div class="block-content" style="color:#e53e3e;">${escapeHtml(item.error)}</div></div>`;
         }
-        return buildResultHtml(item, i);
+        // 找到在 lastResults 中的真实索引
+        const realIdx = lastResults.indexOf(item);
+        return buildResultHtml(item, i, realIdx);
       }).join('');
     el.resultSection.classList.remove('hidden');
     el.resultSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  window.toggleExportSelect = function (realIdx, event) {
+    event.stopPropagation();
+    resultExportSelected[realIdx] = !resultExportSelected[realIdx];
+    const cb = document.getElementById('export-cb-' + realIdx);
+    if (cb) cb.checked = resultExportSelected[realIdx];
+    updateExportCount();
+  };
+
+  function updateExportCount() {
+    const countEl = document.getElementById('export-count');
+    if (countEl) countEl.textContent = resultExportSelected.filter(Boolean).length;
   }
 
   window.toggleProductResult = function (index) {
@@ -397,19 +414,29 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   window.exportResultsCsv = function () {
-    if (lastResults.length === 0) { alert('No results to export'); return; }
-    const rows = [['Product Name', 'Title', 'Description', 'Tags', 'Attributes']];
-    lastResults.forEach(item => {
+    const selected = lastResults.filter((_, i) => resultExportSelected[i]);
+    if (selected.length === 0) { alert('No products selected for export'); return; }
+
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tag 1', 'Tag 2', 'Tag 3', 'Tag 4', 'Tag 5', 'Tag 6', 'Tag 7', 'Tag 8', 'Tag 9', 'Tag 10', 'Tag 11', 'Tag 12', 'Tag 13', 'Attributes']];
+    selected.forEach(item => {
       const s = parseSections(item.text);
+      // 解析标题：按行分割，提取最多3个
+      const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
+      while (titles.length < 3) titles.push('');
+      // 解析标签：按逗号分割，最多13个
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).slice(0, 13);
+      while (tags.length < 13) tags.push('');
+
       rows.push([
         item.product.product_name,
-        s.title.replace(/\n/g, ' '),
-        s.description.replace(/\n/g, '\\n'),
-        s.tags.replace(/\n/g, ' '),
-        s.attributes.replace(/\n/g, ' ')
+        titles[0], titles[1], titles[2],
+        s.description,
+        ...tags,
+        s.attributes
       ]);
     });
-    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""').replace(/\n/g, '\n') + '"').join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -417,11 +444,12 @@ document.addEventListener('DOMContentLoaded', function () {
     a.click();
   };
 
-  function buildResultHtml(item, index) {
+  function buildResultHtml(item, index, realIdx) {
     const s = parseSections(item.text);
     const name = item.product.product_name;
     let html = `<div class="result-product">
       <div class="result-product-header" onclick="toggleProductResult(${index})">
+        <input type="checkbox" id="export-cb-${realIdx}" class="export-checkbox" ${resultExportSelected[realIdx] ? 'checked' : ''} onclick="toggleExportSelect(${realIdx}, event)">
         <i id="product-toggle-${index}" class="fas fa-chevron-down product-toggle-icon"></i>
         <h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>
       </div>

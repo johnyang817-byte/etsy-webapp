@@ -690,6 +690,14 @@ body {
     flex-shrink: 0;
 }
 
+.export-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+    flex-shrink: 0;
+}
+
 .result-product-title {
     font-size: 1.15rem;
     color: #2d3748;
