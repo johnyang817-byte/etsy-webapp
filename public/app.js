@@ -354,21 +354,78 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ========== 显示结果 ==========
+  let lastResults = []; // 保存最近一次生成结果用于导出
+
   function showResults(results) {
-    el.resultContent.innerHTML = results.map((item, i) => {
-      if (item.error) {
-        return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${item.product.product_name}</span></div><div class="block-content" style="color:#e53e3e;">${item.error}</div></div>`;
-      }
-      return buildResultHtml(item, i);
-    }).join('');
+    lastResults = results.filter(r => !r.error);
+    el.resultContent.innerHTML =
+      `<div class="result-toolbar">
+        <button class="btn-toggle-all" onclick="toggleAllProducts(true)"><i class="fas fa-chevron-down"></i> Expand All</button>
+        <button class="btn-toggle-all" onclick="toggleAllProducts(false)"><i class="fas fa-chevron-up"></i> Collapse All</button>
+        <button class="btn-export-results" onclick="exportResultsCsv()"><i class="fas fa-download"></i> Export All as CSV</button>
+      </div>` +
+      results.map((item, i) => {
+        if (item.error) {
+          return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${escapeHtml(item.product.product_name)}</span></div><div class="block-content" style="color:#e53e3e;">${escapeHtml(item.error)}</div></div>`;
+        }
+        return buildResultHtml(item, i);
+      }).join('');
     el.resultSection.classList.remove('hidden');
     el.resultSection.scrollIntoView({ behavior: 'smooth' });
   }
 
+  window.toggleProductResult = function (index) {
+    const body = document.getElementById('product-body-' + index);
+    const icon = document.getElementById('product-toggle-' + index);
+    if (body.classList.contains('hidden')) {
+      body.classList.remove('hidden');
+      icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+    } else {
+      body.classList.add('hidden');
+      icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+    }
+  };
+
+  window.toggleAllProducts = function (expand) {
+    document.querySelectorAll('.product-body').forEach(el => {
+      el.classList.toggle('hidden', !expand);
+    });
+    document.querySelectorAll('.product-toggle-icon').forEach(icon => {
+      if (expand) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+      else icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+    });
+  };
+
+  window.exportResultsCsv = function () {
+    if (lastResults.length === 0) { alert('No results to export'); return; }
+    const rows = [['Product Name', 'Title', 'Description', 'Tags', 'Attributes']];
+    lastResults.forEach(item => {
+      const s = parseSections(item.text);
+      rows.push([
+        item.product.product_name,
+        s.title.replace(/\n/g, ' '),
+        s.description.replace(/\n/g, '\\n'),
+        s.tags.replace(/\n/g, ' '),
+        s.attributes.replace(/\n/g, ' ')
+      ]);
+    });
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'etsycopy_results_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+  };
+
   function buildResultHtml(item, index) {
     const s = parseSections(item.text);
     const name = item.product.product_name;
-    let html = `<div class="result-product"><h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>`;
+    let html = `<div class="result-product">
+      <div class="result-product-header" onclick="toggleProductResult(${index})">
+        <i id="product-toggle-${index}" class="fas fa-chevron-down product-toggle-icon"></i>
+        <h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>
+      </div>
+      <div id="product-body-${index}" class="product-body">`;
 
     const blocks = [
       { key: 'title', icon: '🏷️', label: 'Etsy Titles (3 Options)' },
@@ -394,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>`;
     });
 
-    html += '</div>';
+    html += '</div></div>';
     return html;
   }
 
