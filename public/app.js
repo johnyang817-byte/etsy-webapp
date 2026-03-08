@@ -681,6 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Prompt Settings ==========
   const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
+  const PROMPT_HISTORY_MAX = 5;
 
   function getCustomPrompts() {
     const saved = getSavedPrompts();
@@ -693,57 +694,130 @@ document.addEventListener('DOMContentLoaded', function () {
     return Object.keys(result).length > 0 ? result : null;
   }
 
+  function getPromptHistory(section) {
+    try { return JSON.parse(localStorage.getItem(getUserKey('prompt_history_' + section))) || []; } catch { return []; }
+  }
+
+  function addPromptHistory(section, text) {
+    if (!text || !text.trim()) return;
+    const history = getPromptHistory(section);
+    // Don't add duplicate of the most recent
+    if (history.length > 0 && history[0].text === text.trim()) return;
+    history.unshift({ text: text.trim(), date: new Date().toISOString() });
+    if (history.length > PROMPT_HISTORY_MAX) history.length = PROMPT_HISTORY_MAX;
+    localStorage.setItem(getUserKey('prompt_history_' + section), JSON.stringify(history));
+  }
+
   function loadPromptSettings() {
     const saved = getSavedPrompts();
     PROMPT_SECTIONS.forEach(key => {
       const textarea = document.getElementById('prompt-' + key);
+      const body = document.getElementById('body-' + key);
+      const status = document.getElementById('status-' + key);
       const isCustom = saved[key]?.mode === 'custom';
       textarea.value = saved[key]?.text || '';
-      textarea.classList.toggle('hidden', !isCustom);
-      // Update toggle buttons
-      document.querySelectorAll(`.prompt-mode-btn[data-target="${key}"]`).forEach(btn => {
+      body.classList.toggle('hidden', !isCustom);
+      status.textContent = isCustom ? 'Custom' : 'Default';
+      status.style.color = isCustom ? 'var(--accent)' : '';
+      // Update segmented buttons
+      const segmented = document.querySelector(`.prompt-segmented[data-target="${key}"]`);
+      segmented.querySelectorAll('.seg-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === (isCustom ? 'custom' : 'default'));
       });
     });
   }
 
-  // Prompt toggle buttons
-  document.querySelectorAll('.prompt-mode-btn').forEach(btn => {
+  // Segmented control clicks
+  document.querySelectorAll('.seg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const target = btn.dataset.target;
+      const segmented = btn.closest('.prompt-segmented');
+      const target = segmented.dataset.target;
       const mode = btn.dataset.mode;
-      const textarea = document.getElementById('prompt-' + target);
-      // Update active state
-      document.querySelectorAll(`.prompt-mode-btn[data-target="${target}"]`).forEach(b => {
-        b.classList.toggle('active', b === btn);
-      });
-      textarea.classList.toggle('hidden', mode === 'default');
-      if (mode === 'custom') textarea.focus();
+      const body = document.getElementById('body-' + target);
+      const status = document.getElementById('status-' + target);
+      segmented.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+      body.classList.toggle('hidden', mode === 'default');
+      status.textContent = mode === 'custom' ? 'Custom' : 'Default';
+      status.style.color = mode === 'custom' ? 'var(--accent)' : '';
+      if (mode === 'custom') document.getElementById('prompt-' + target).focus();
     });
   });
 
-  // Save prompts
+  // Save
   document.getElementById('btn-save-prompts').addEventListener('click', () => {
     const prompts = {};
     PROMPT_SECTIONS.forEach(key => {
       const textarea = document.getElementById('prompt-' + key);
-      const activeBtn = document.querySelector(`.prompt-mode-btn[data-target="${key}"].active`);
-      prompts[key] = {
-        mode: activeBtn?.dataset.mode || 'default',
-        text: textarea.value
-      };
+      const segmented = document.querySelector(`.prompt-segmented[data-target="${key}"]`);
+      const activeBtn = segmented.querySelector('.seg-btn.active');
+      const mode = activeBtn?.dataset.mode || 'default';
+      prompts[key] = { mode, text: textarea.value };
+      // Save to prompt history if custom and has content
+      if (mode === 'custom' && textarea.value.trim()) {
+        addPromptHistory(key, textarea.value);
+      }
     });
     localStorage.setItem(getUserKey('prompts'), JSON.stringify(prompts));
-    alert('Prompt settings saved!');
+    // Visual feedback
+    const btn = document.getElementById('btn-save-prompts');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+    btn.style.background = '#34c759';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 1500);
   });
 
-  // Reset prompts
+  // Reset
   document.getElementById('btn-reset-prompts').addEventListener('click', () => {
     if (!confirm('Reset all prompts to default?')) return;
     localStorage.removeItem(getUserKey('prompts'));
     loadPromptSettings();
-    alert('All prompts reset to default.');
   });
+
+  // Prompt History Modal
+  window.showPromptHistory = function (section) {
+    const sectionNames = { title: 'Title', description: 'Description', tags: 'Tags', attributes: 'Attributes' };
+    const modal = document.getElementById('prompt-history-modal');
+    const title = document.getElementById('prompt-history-modal-title');
+    const list = document.getElementById('prompt-history-list');
+    title.textContent = sectionNames[section] + ' Prompt History';
+
+    const history = getPromptHistory(section);
+    if (history.length === 0) {
+      list.innerHTML = '<div class="prompt-history-empty">No saved prompts yet.<br>Your custom prompts will appear here after saving.</div>';
+    } else {
+      list.innerHTML = history.map((item, i) => {
+        const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<div class="prompt-history-item" onclick="usePromptHistory('${section}', ${i})">
+          <div class="prompt-history-item-text">${escapeHtml(item.text)}</div>
+          <div class="prompt-history-item-date">${date}</div>
+          <button class="prompt-history-item-use" onclick="event.stopPropagation();usePromptHistory('${section}', ${i})">Use</button>
+        </div>`;
+      }).join('');
+    }
+    modal.classList.remove('hidden');
+  };
+
+  window.closePromptHistory = function () {
+    document.getElementById('prompt-history-modal').classList.add('hidden');
+  };
+
+  window.usePromptHistory = function (section, index) {
+    const history = getPromptHistory(section);
+    if (!history[index]) return;
+    const textarea = document.getElementById('prompt-' + section);
+    textarea.value = history[index].text;
+    // Switch to custom mode
+    const segmented = document.querySelector(`.prompt-segmented[data-target="${section}"]`);
+    segmented.querySelectorAll('.seg-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === 'custom');
+    });
+    document.getElementById('body-' + section).classList.remove('hidden');
+    const status = document.getElementById('status-' + section);
+    status.textContent = 'Custom';
+    status.style.color = 'var(--accent)';
+    closePromptHistory();
+    textarea.focus();
+  };
 
   // ========== 工具 ==========
   function showLoading(show) {
