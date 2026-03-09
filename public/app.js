@@ -163,8 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
     promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
     generateAllBtn: document.getElementById('generate-all'),
-    csvUploadArea: document.querySelector('.csv-upload-area'),
-    btnUploadCsv: document.getElementById('btn-upload-csv'),
+    dropZone: document.getElementById('drop-zone'),
     csvInput: document.getElementById('csv-input'),
     fileName: document.getElementById('file-name'),
     csvPreview: document.getElementById('csv-preview'),
@@ -203,28 +202,25 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
   // ========== CSV 上传 ==========
-  el.btnUploadCsv.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  el.dropZone.addEventListener('click', function() {
     el.csvInput.value = '';
     el.csvInput.click();
   });
 
-  el.csvInput.addEventListener('change', (e) => {
-    if (e.target.files.length) handleCsvFile(e.target.files[0]);
+  el.csvInput.addEventListener('change', function() {
+    if (this.files.length) handleCsvFile(this.files[0]);
   });
 
-  // Drag & drop on the upload area
-  el.csvUploadArea.addEventListener('dragover', e => {
+  el.dropZone.addEventListener('dragover', function(e) {
     e.preventDefault();
-    el.csvUploadArea.classList.add('csv-drag-over');
+    this.classList.add('drag-over');
   });
-  el.csvUploadArea.addEventListener('dragleave', () => {
-    el.csvUploadArea.classList.remove('csv-drag-over');
+  el.dropZone.addEventListener('dragleave', function() {
+    this.classList.remove('drag-over');
   });
-  el.csvUploadArea.addEventListener('drop', e => {
+  el.dropZone.addEventListener('drop', function(e) {
     e.preventDefault();
-    el.csvUploadArea.classList.remove('csv-drag-over');
+    this.classList.remove('drag-over');
     if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
   });
 
