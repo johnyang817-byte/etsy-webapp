@@ -16,8 +16,12 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    let product, customPrompts;
-    try { product = req.body.product; customPrompts = req.body.customPrompts || null; } catch (e) {
+    let product, customPrompts, imageBase64;
+    try { 
+        product = req.body.product; 
+        customPrompts = req.body.customPrompts || null; 
+        imageBase64 = req.body.imageBase64 || null;
+    } catch (e) {
         return res.status(400).json({ success: false, error: 'Invalid JSON body' });
     }
     if (!product || !product.product_name || !product.product_name.trim()) {
@@ -99,24 +103,69 @@ ${tagsSection}
 
 ${attrSection}`;
 
+    // Build messages - use vision model if image provided
+    const useVision = !!imageBase64;
+    const actualModel = useVision ? 'qwen-vl-plus' : model;
+    
+    let userContent;
+    if (useVision) {
+        userContent = [
+            { type: 'image_url', image_url: { url: imageBase64 } },
+            { type: 'text', text: prompt }
+        ];
+    } else {
+        userContent = prompt;
+    }
+
     try {
-        const apiRes = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model,
+        const apiUrl = useVision 
+            ? 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+            : 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
+
+        let apiBody, headers;
+        headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+
+        if (useVision) {
+            // OpenAI compatible format for vision model
+            apiBody = {
+                model: actualModel,
+                messages: [
+                    { role: 'system', content: 'You are an expert Etsy SEO copywriter. Analyze the product image carefully and combine visual details with the text prompt to generate rich, detailed listing copy.' },
+                    { role: 'user', content: userContent }
+                ],
+                max_tokens: 4000
+            };
+        } else {
+            // DashScope native format for text model
+            apiBody = {
+                model: actualModel,
                 input: { messages: [
                     { role: 'system', content: 'You are an expert Etsy SEO copywriter based in the US. Write rich, detailed, emotionally engaging content. Do not limit word count. Be thorough and creative.' },
-                    { role: 'user', content: prompt }
+                    { role: 'user', content: userContent }
                 ]},
                 parameters: { result_format: 'message', max_tokens: 4000 }
-            })
+            };
+        }
+
+        const apiRes = await fetch(apiUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(apiBody)
         });
         const data = await apiRes.json();
-        if (data.output?.choices?.[0]?.message?.content) {
-            return res.status(200).json({ success: true, text: data.output.choices[0].message.content });
+        
+        // Extract text from response
+        let text;
+        if (useVision) {
+            text = data.choices?.[0]?.message?.content;
+        } else {
+            text = data.output?.choices?.[0]?.message?.content;
         }
-        return res.status(500).json({ success: false, error: data.message || 'API返回格式异常' });
+        
+        if (text) {
+            return res.status(200).json({ success: true, text });
+        }
+        return res.status(500).json({ success: false, error: data.message || data.error?.message || 'API returned unexpected format' });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }

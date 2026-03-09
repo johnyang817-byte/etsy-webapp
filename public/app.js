@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!product.product_name) { alert('Please enter a product name'); return; }
     showLoading(true);
     try {
-      const result = await callApi(product);
+      const result = await callApi(product, refImageBase64);
       if (!result.error) {
         addUsage();
         saveHistory({ product_name: product.product_name, text: result.text });
@@ -350,11 +350,12 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ========== API 调用 ==========
-  async function callApi(product) {
+  async function callApi(product, imageBase64) {
     try {
       const customPrompts = getCustomPrompts();
       const body = { product };
       if (customPrompts) body.customPrompts = customPrompts;
+      if (imageBase64) body.imageBase64 = imageBase64;
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

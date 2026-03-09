@@ -255,6 +255,21 @@
                                 <input type="text" id="manual-occasion" placeholder="e.g. birthday, christmas">
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label>Reference Image (optional)</label>
+                            <div class="img-upload-area" id="img-upload-area">
+                                <div class="img-upload-placeholder" id="img-placeholder">
+                                    <i class="fas fa-image"></i>
+                                    <span>Click or drag to upload a product photo</span>
+                                    <small>AI will analyze the image to enhance copy generation</small>
+                                </div>
+                                <div class="img-preview-wrap hidden" id="img-preview-wrap">
+                                    <img id="img-preview" src="" alt="Preview">
+                                    <button class="img-remove-btn" onclick="removeRefImage(event)"><i class="fas fa-xmark"></i></button>
+                                </div>
+                                <input type="file" id="ref-image-input" accept="image/*" hidden>
+                            </div>
+                        </div>
                         <button type="submit" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy</button>
                     </form>
                 </section>
