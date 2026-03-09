@@ -163,7 +163,8 @@ document.addEventListener('DOMContentLoaded', function () {
     promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
     generateAllBtn: document.getElementById('generate-all'),
-    dropZone: document.getElementById('drop-zone'),
+    csvUploadArea: document.querySelector('.csv-upload-area'),
+    btnUploadCsv: document.getElementById('btn-upload-csv'),
     csvInput: document.getElementById('csv-input'),
     fileName: document.getElementById('file-name'),
     csvPreview: document.getElementById('csv-preview'),
@@ -202,18 +203,30 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
   // ========== CSV 上传 ==========
-  el.dropZone.addEventListener('click', () => {
-    el.csvInput.value = '';  // 清空以允许重新选择同一文件
+  el.btnUploadCsv.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.csvInput.value = '';
     el.csvInput.click();
   });
-  el.dropZone.addEventListener('dragover', e => { e.preventDefault(); el.dropZone.style.background = '#e0e7ff'; });
-  el.dropZone.addEventListener('dragleave', () => { el.dropZone.style.background = 'white'; });
-  el.dropZone.addEventListener('drop', e => {
+
+  el.csvInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleCsvFile(e.target.files[0]);
+  });
+
+  // Drag & drop on the upload area
+  el.csvUploadArea.addEventListener('dragover', e => {
     e.preventDefault();
-    el.dropZone.style.background = 'white';
+    el.csvUploadArea.classList.add('csv-drag-over');
+  });
+  el.csvUploadArea.addEventListener('dragleave', () => {
+    el.csvUploadArea.classList.remove('csv-drag-over');
+  });
+  el.csvUploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    el.csvUploadArea.classList.remove('csv-drag-over');
     if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
   });
-  el.csvInput.addEventListener('change', e => { if (e.target.files.length) handleCsvFile(e.target.files[0]); });
 
   let csvProductSelected = []; // 记录每个产品的勾选状态
 

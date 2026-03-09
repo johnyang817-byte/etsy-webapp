@@ -211,10 +211,12 @@
 
                 <!-- CSV 上传区域 -->
                 <section id="csv-section" class="content-section">
-                    <div class="upload-area" id="drop-zone">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click or drag to upload CSV file</p>
-                        <input type="file" id="csv-input" accept=".csv" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;">
+                    <div class="csv-upload-area">
+                        <input type="file" id="csv-input" accept=".csv" style="display:none;">
+                        <button class="btn-upload" id="btn-upload-csv">
+                            <i class="fas fa-cloud-upload-alt"></i> Choose CSV File
+                        </button>
+                        <p class="csv-upload-hint">or drag & drop file here</p>
                         <small>Template: <a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
                     </div>
                     <div id="csv-preview" class="preview-area hidden">
