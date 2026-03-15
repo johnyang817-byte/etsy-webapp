@@ -275,18 +275,38 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     const progress = document.getElementById('smart-progress');
     const report = document.getElementById('smart-report');
-    progress.classList.remove('hidden'); report.classList.add('hidden'); el.resultSection.classList.add('hidden');
-    setSmartStep('search', 'active', 'Searching...'); setSmartStep('analyze', '', 'waiting'); setSmartStep('generate', '', 'waiting');
+    const sources = document.getElementById('smart-sources');
+    progress.classList.remove('hidden'); report.classList.add('hidden'); sources.classList.add('hidden'); el.resultSection.classList.add('hidden');
+
+    setSmartStep('search', 'active', 'Searching...'); setSmartStep('trends', '', 'waiting'); setSmartStep('analyze', '', 'waiting'); setSmartStep('generate', '', 'waiting');
+
     try {
-      setTimeout(() => { setSmartStep('search', 'done', 'Found competitors'); setSmartStep('analyze', 'active', 'Analyzing...'); }, 2000);
-      setTimeout(() => { setSmartStep('analyze', 'done', 'Analysis complete'); setSmartStep('generate', 'active', 'Generating...'); }, 5000);
+      setTimeout(() => { setSmartStep('search', 'done', 'Multi-source search complete'); setSmartStep('trends', 'active', 'Fetching...'); }, 2000);
+      setTimeout(() => { setSmartStep('trends', 'done', 'Trends data loaded'); setSmartStep('analyze', 'active', 'Analyzing...'); }, 4000);
+      setTimeout(() => { setSmartStep('analyze', 'done', 'Analysis complete'); setSmartStep('generate', 'active', 'Generating...'); }, 7000);
+
       const customPrompts = getCustomPrompts();
       const res = await fetch('/api/smart-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, productInfo, customPrompts }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
-      setSmartStep('search', 'done', `Found ${data.competitorCount} competitors`);
+
+      setSmartStep('search', 'done', `Etsy: ${data.competitorCount} | Shopping: ${data.shoppingCount || 0} | Amazon: ${data.amazonCount || 0}`);
+      setSmartStep('trends', 'done', data.trendsData ? `${data.trendsData.trend_direction} (${data.trendsData.avg_interest}/100)` : 'No data');
       setSmartStep('analyze', 'done', 'Analysis complete');
       setSmartStep('generate', 'done', 'Listing generated!');
+
+      // Show data sources
+      if (data.dataSources) {
+        const srcHtml = Object.entries(data.dataSources).map(([k, v]) => {
+          const icon = v.status === 'ok' ? '✅' : '⚠️';
+          const name = { etsy_search: 'Etsy Search', google_shopping: 'Google Shopping', amazon: 'Amazon', google_trends: 'Google Trends' }[k] || k;
+          const detail = v.count !== undefined ? `${v.count} results` : (v.direction || '');
+          return `<span class="source-badge">${icon} ${name} ${detail ? '(' + detail + ')' : ''}</span>`;
+        }).join('');
+        document.getElementById('smart-sources-content').innerHTML = `<strong>Data Sources:</strong> ${srcHtml}`;
+        sources.classList.remove('hidden');
+      }
+
       if (data.competitorReport) { document.getElementById('smart-report-content').textContent = data.competitorReport; report.classList.remove('hidden'); }
       addUsage(); saveHistory({ product_name: productInfo.product_name, text: data.listing }); refreshDashboard();
       showResults([{ product: productInfo, text: data.listing }]);
@@ -302,13 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e) e.className = 'smart-step' + (state ? ' ' + state : '');
     if (s && statusText !== undefined) s.textContent = statusText;
   }
-
-  document.getElementById('toggle-report')?.addEventListener('click', () => {
-    const body = document.getElementById('smart-report-body');
-    const icon = document.querySelector('#toggle-report .smart-toggle-report i');
-    body.classList.toggle('hidden');
-    if (icon) { icon.classList.toggle('fa-chevron-up'); icon.classList.toggle('fa-chevron-down'); }
-  });
 
   // ========== Image Upload ==========
   let uploadedImages = [];
