@@ -206,17 +206,16 @@
 
                 <!-- Image Upload -->
                 <section id="image-section" class="content-section">
-                    <div class="smart-header">
-                        <div class="smart-header-icon" style="background:#8b5cf6;"><i class="fas fa-camera"></i></div>
-                        <div>
-                            <h3>Image to Listing</h3>
-                            <p>Upload product photos — AI identifies your product, searches competitors, and generates optimized copy.</p>
+                    <div class="img-hero" id="img-drop-zone">
+                        <div class="img-hero-icon">
+                            <i class="fas fa-camera"></i>
                         </div>
-                    </div>
-                    <div class="img-upload-zone" id="img-drop-zone">
-                        <i class="fas fa-camera"></i>
-                        <p>Click or drag to upload product photos</p>
-                        <small>Supports JPG, PNG, WEBP (max 5MB per image, up to 4 images)</small>
+                        <h3>Upload Product Photo</h3>
+                        <p>AI identifies your product, searches competitors, and generates optimized listing copy.</p>
+                        <button class="img-hero-btn" id="img-upload-btn">
+                            <i class="fas fa-plus"></i> Choose Image
+                        </button>
+                        <span class="img-hero-hint">or drag & drop here · JPG, PNG, WEBP · max 5MB</span>
                     </div>
                     <input type="file" id="img-input" accept="image/*" multiple style="display:none;">
                     <div id="img-preview-area" class="img-preview-area hidden">
