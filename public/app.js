@@ -155,12 +155,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const el = {
     modeCsv: document.getElementById('mode-csv'),
     modeManual: document.getElementById('mode-manual'),
-    modeHistory: document.getElementById('mode-history'),
+    modeSmart: document.getElementById('mode-smart'),
     modePrompts: document.getElementById('mode-prompts'),
     modeImage: document.getElementById('mode-image'),
     csvSection: document.getElementById('csv-section'),
     manualSection: document.getElementById('manual-section'),
     imageSection: document.getElementById('image-section'),
+    smartSection: document.getElementById('smart-section'),
     historySection: document.getElementById('history-section'),
     promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
@@ -182,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 模式切换 ==========
   function switchMode(mode) {
-    ['csv', 'manual', 'image', 'history', 'prompts'].forEach(m => {
+    ['csv', 'manual', 'image', 'smart', 'history', 'prompts'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -201,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeManual.addEventListener('click', () => switchMode('manual'));
   el.modeImage.addEventListener('click', () => switchMode('image'));
+  el.modeSmart.addEventListener('click', () => switchMode('smart'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
   el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
@@ -697,6 +699,100 @@ document.addEventListener('DOMContentLoaded', function () {
     historyToggleView(index);
   };
 
+  // ========== Smart Generate ==========
+  document.getElementById('smart-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+
+    const keyword = document.getElementById('smart-keyword').value.trim();
+    if (!keyword) { alert('Please enter a search keyword'); return; }
+
+    const productInfo = {
+      product_name: document.getElementById('smart-product-name').value.trim() || keyword,
+      material: document.getElementById('smart-material').value.trim(),
+      color: document.getElementById('smart-color').value.trim(),
+      occasion: document.getElementById('smart-occasion').value.trim()
+    };
+
+    // Show progress
+    const progress = document.getElementById('smart-progress');
+    const report = document.getElementById('smart-report');
+    progress.classList.remove('hidden');
+    report.classList.add('hidden');
+    el.resultSection.classList.add('hidden');
+
+    // Animate steps
+    setSmartStep('search', 'active', 'Searching...');
+    setSmartStep('analyze', '', 'waiting');
+    setSmartStep('generate', '', 'waiting');
+
+    try {
+      // Simulate step progression with actual API call
+      setTimeout(() => {
+        setSmartStep('search', 'done', 'Found competitors');
+        setSmartStep('analyze', 'active', 'Analyzing...');
+      }, 2000);
+
+      setTimeout(() => {
+        setSmartStep('analyze', 'done', 'Analysis complete');
+        setSmartStep('generate', 'active', 'Generating...');
+      }, 5000);
+
+      const customPrompts = getCustomPrompts();
+      const res = await fetch('/api/smart-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, productInfo, customPrompts })
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
+
+      // All steps done
+      setSmartStep('search', 'done', `Found ${data.competitorCount} competitors`);
+      setSmartStep('analyze', 'done', 'Analysis complete');
+      setSmartStep('generate', 'done', 'Listing generated!');
+
+      // Show competitor report
+      if (data.competitorReport) {
+        document.getElementById('smart-report-content').textContent = data.competitorReport;
+        report.classList.remove('hidden');
+      }
+
+      // Show generated listing
+      addUsage();
+      saveHistory({ product_name: productInfo.product_name, text: data.listing });
+      refreshDashboard();
+      showResults([{ product: productInfo, text: data.listing }]);
+
+    } catch (err) {
+      setSmartStep('search', 'done', '');
+      setSmartStep('analyze', 'done', '');
+      setSmartStep('generate', '', 'Failed: ' + err.message);
+      alert('Smart Generate failed: ' + err.message);
+    }
+  });
+
+  function setSmartStep(step, state, statusText) {
+    const el = document.getElementById('step-' + step);
+    const status = document.getElementById('step-' + step + '-status');
+    if (el) {
+      el.className = 'smart-step' + (state ? ' ' + state : '');
+    }
+    if (status && statusText !== undefined) {
+      status.textContent = statusText;
+    }
+  }
+
+  // Toggle report
+  document.getElementById('toggle-report')?.addEventListener('click', () => {
+    const body = document.getElementById('smart-report-body');
+    const icon = document.querySelector('#toggle-report i');
+    body.classList.toggle('hidden');
+    icon.classList.toggle('fa-chevron-up');
+    icon.classList.toggle('fa-chevron-down');
+  });
+
   // ========== Image Upload ==========
   let uploadedImages = []; // { file, dataUrl }
 
@@ -941,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', function () {
     el.resultSection.classList.add('hidden');
     if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeImage.classList.contains('active')) switchMode('image');
+    else if (el.modeSmart.classList.contains('active')) switchMode('smart');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
     else if (el.modePrompts.classList.contains('active')) switchMode('prompts');
     else switchMode('manual');

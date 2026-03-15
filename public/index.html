@@ -204,6 +204,9 @@
                     <button id="mode-image" class="mode-btn">
                         <i class="fas fa-image"></i> Image Upload
                     </button>
+                    <button id="mode-smart" class="mode-btn">
+                        <i class="fas fa-bolt"></i> Smart Generate
+                    </button>
                     <button id="mode-history" class="mode-btn">
                         <i class="fas fa-clock-rotate-left"></i> History
                     </button>
@@ -275,6 +278,80 @@
                         </div>
                         <button type="submit" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy</button>
                     </form>
+                </section>
+
+                <!-- Smart Generate -->
+                <section id="smart-section" class="content-section hidden">
+                    <div class="smart-header">
+                        <div class="smart-header-icon"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <h3>Smart Generate</h3>
+                            <p>Enter a keyword — AI searches competitors, analyzes trends, and generates optimized copy.</p>
+                        </div>
+                    </div>
+                    <form id="smart-form">
+                        <div class="form-group">
+                            <label>Search Keyword *</label>
+                            <input type="text" id="smart-keyword" placeholder="e.g. Woven Lucky Bracelet, Name Necklace Gold" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Your Product Name (optional)</label>
+                                <input type="text" id="smart-product-name" placeholder="e.g. Handmade Red Cord Bracelet">
+                            </div>
+                            <div class="form-group">
+                                <label>Material</label>
+                                <input type="text" id="smart-material" placeholder="e.g. 14K gold, sterling silver">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Color</label>
+                                <input type="text" id="smart-color" placeholder="e.g. rose gold, red">
+                            </div>
+                            <div class="form-group">
+                                <label>Occasion</label>
+                                <input type="text" id="smart-occasion" placeholder="e.g. birthday, wedding">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary"><i class="fas fa-bolt"></i> Search & Generate</button>
+                    </form>
+
+                    <!-- Smart Progress -->
+                    <div id="smart-progress" class="smart-progress hidden">
+                        <div class="smart-step" id="step-search">
+                            <div class="smart-step-icon"><i class="fas fa-magnifying-glass"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Searching Etsy competitors...</span>
+                                <span class="smart-step-status" id="step-search-status">waiting</span>
+                            </div>
+                        </div>
+                        <div class="smart-step" id="step-analyze">
+                            <div class="smart-step-icon"><i class="fas fa-chart-bar"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Analyzing market trends...</span>
+                                <span class="smart-step-status" id="step-analyze-status">waiting</span>
+                            </div>
+                        </div>
+                        <div class="smart-step" id="step-generate">
+                            <div class="smart-step-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Generating optimized listing...</span>
+                                <span class="smart-step-status" id="step-generate-status">waiting</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Competitor Report -->
+                    <div id="smart-report" class="smart-report hidden">
+                        <div class="smart-report-header">
+                            <h3><i class="fas fa-chart-pie"></i> Competitor Analysis Report</h3>
+                            <button class="smart-toggle-report" id="toggle-report"><i class="fas fa-chevron-up"></i></button>
+                        </div>
+                        <div id="smart-report-body" class="smart-report-body">
+                            <pre id="smart-report-content"></pre>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- 历史记录 -->
