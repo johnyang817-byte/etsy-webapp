@@ -331,7 +331,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const imgPreviewGrid = document.getElementById('img-preview-grid');
   const imgExtraFields = document.getElementById('img-extra-fields');
 
-  imgDropZone.addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+  imgDropZone.addEventListener('click', (e) => {
+    if (e.target.closest('.img-hero-btn')) return; // btn handles itself
+    imgInput.value = ''; imgInput.click();
+  });
+  const imgUploadBtn = document.getElementById('img-upload-btn');
+  if (imgUploadBtn) imgUploadBtn.addEventListener('click', (e) => { e.stopPropagation(); imgInput.value = ''; imgInput.click(); });
   imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
   imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
   imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
