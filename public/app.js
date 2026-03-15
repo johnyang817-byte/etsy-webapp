@@ -1,4 +1,4 @@
-// Etsy Copy AI - SaaS App
+// ListingPaw AI - app.js (4 modules: Image Upload, Smart Generate, CSV Bulk, History)
 document.addEventListener('DOMContentLoaded', function () {
   // ========== 页面路由 ==========
   window.showPage = function (page) {
@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo(0, 0);
   };
 
-  // If logged in → dashboard, otherwise → signup
   window.goToApp = function () {
     showPage(getUser() ? 'dashboard' : 'signup');
   };
@@ -17,84 +16,55 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateLandingNav() {
     const user = getUser();
     const loggedIn = !!user;
-    const btnLogin = document.getElementById('landing-btn-login');
-    const btnSignup = document.getElementById('landing-btn-signup');
-    const btnDashboard = document.getElementById('landing-btn-dashboard');
-    const btnLogout = document.getElementById('landing-btn-logout');
-    if (btnLogin) btnLogin.classList.toggle('hidden', loggedIn);
-    if (btnSignup) btnSignup.classList.toggle('hidden', loggedIn);
-    if (btnDashboard) btnDashboard.classList.toggle('hidden', !loggedIn);
-    if (btnLogout) btnLogout.classList.toggle('hidden', !loggedIn);
+    ['landing-btn-login', 'landing-btn-signup'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden', loggedIn);
+    });
+    ['landing-btn-dashboard', 'landing-btn-logout'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden', !loggedIn);
+    });
   }
 
-  // ========== 用户系统（localStorage 模拟，后续接真实后端） ==========
+  // ========== 用户系统 ==========
   const AUTH_KEY = 'listingpaw_user';
 
   function getUserKey(suffix) {
     const user = getUser();
-    const uid = user?.email || 'guest';
-    return 'listingpaw_' + uid + '_' + suffix;
+    return 'listingpaw_' + (user?.email || 'guest') + '_' + suffix;
   }
 
-  function getUser() {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
-  }
-
+  function getUser() { try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; } }
   function setUser(user) { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); }
 
-  function getHistory() {
-    try { return JSON.parse(localStorage.getItem(getUserKey('history'))) || []; } catch { return []; }
-  }
-
+  function getHistory() { try { return JSON.parse(localStorage.getItem(getUserKey('history'))) || []; } catch { return []; } }
   function saveHistory(item) {
-    const history = getHistory();
-    history.unshift({ ...item, date: new Date().toISOString() });
-    if (history.length > 200) history.length = 200;
-    localStorage.setItem(getUserKey('history'), JSON.stringify(history));
+    const h = getHistory();
+    h.unshift({ ...item, date: new Date().toISOString() });
+    if (h.length > 200) h.length = 200;
+    localStorage.setItem(getUserKey('history'), JSON.stringify(h));
   }
 
   function getUsage() {
-    const data = JSON.parse(localStorage.getItem(getUserKey('usage')) || '{}');
-    const month = new Date().toISOString().slice(0, 7);
-    if (data.month !== month) return { month, count: 0 };
-    return data;
+    const d = JSON.parse(localStorage.getItem(getUserKey('usage')) || '{}');
+    const m = new Date().toISOString().slice(0, 7);
+    return d.month === m ? d : { month: m, count: 0 };
   }
-
   function addUsage() {
-    const usage = getUsage();
-    usage.count++;
-    localStorage.setItem(getUserKey('usage'), JSON.stringify(usage));
-    return usage;
+    const u = getUsage(); u.count++;
+    localStorage.setItem(getUserKey('usage'), JSON.stringify(u));
+    return u;
   }
 
-  function getPlan() {
-    const user = getUser();
-    return user?.plan || 'free';
-  }
+  function getPlan() { return getUser()?.plan || 'free'; }
+  function getLimit() { const p = getPlan(); return p === 'unlimited' ? Infinity : p === 'pro' ? 100 : 20; }
+  function canGenerate() { return getUsage().count < getLimit(); }
 
-  function getLimit() {
-    const plan = getPlan();
-    if (plan === 'unlimited') return Infinity;
-    if (plan === 'pro') return 100;
-    return 20;
-  }
-
-  function canGenerate() {
-    return getUsage().count < getLimit();
-  }
-
-  function getSavedPrompts() {
-    try { return JSON.parse(localStorage.getItem(getUserKey('prompts'))) || {}; } catch { return {}; }
-  }
-
-  const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
-
+  function getSavedPrompts() { try { return JSON.parse(localStorage.getItem(getUserKey('prompts'))) || {}; } catch { return {}; } }
   function getCustomPrompts() {
     const saved = getSavedPrompts();
     const result = {};
-    PROMPT_SECTIONS.forEach(key => {
-      if (saved[key]?.trim()) result[key] = saved[key].trim();
-    });
+    ['title', 'description', 'tags', 'attributes'].forEach(k => { if (saved[k]?.trim()) result[k] = saved[k].trim(); });
     return Object.keys(result).length > 0 ? result : null;
   }
 
@@ -106,11 +76,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const confirm = document.getElementById('signup-confirm').value;
     if (pw !== confirm) { alert('Passwords do not match'); return; }
     if (pw.length < 6) { alert('Password must be at least 6 characters'); return; }
-
-    // 模拟注册（后续接真实 API）
     const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
-    if (users[email]) { alert('Email already registered. Please log in.'); return; }
-    users[email] = { email, password: btoa(pw), plan: 'free', created: new Date().toISOString() };
+    if (users[email]) { alert('Email already registered'); return; }
+    users[email] = { password: pw, plan: 'free' };
     localStorage.setItem('listingpaw_users', JSON.stringify(users));
     setUser({ email, plan: 'free' });
     showPage('dashboard');
@@ -122,60 +90,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const email = document.getElementById('login-email').value.trim();
     const pw = document.getElementById('login-password').value;
     const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
-    if (!users[email] || users[email].password !== btoa(pw)) {
-      alert('Invalid email or password'); return;
-    }
+    if (!users[email] || users[email].password !== pw) { alert('Invalid email or password'); return; }
     setUser({ email, plan: users[email].plan || 'free' });
     showPage('dashboard');
   });
 
   // ========== 登出 ==========
-  function doLogout() {
-    localStorage.removeItem(AUTH_KEY);
-    updateLandingNav();
-    showPage('landing');
-  }
-
+  function doLogout() { localStorage.removeItem(AUTH_KEY); updateLandingNav(); showPage('landing'); }
   document.getElementById('btn-logout').addEventListener('click', doLogout);
   document.getElementById('landing-btn-logout').addEventListener('click', doLogout);
 
   // ========== Dashboard 刷新 ==========
   function refreshDashboard() {
     const user = getUser();
-    if (!user) { showPage('landing'); return; }
+    if (!user) return;
     const usage = getUsage();
     const limit = getLimit();
-    const plan = getPlan();
-
     document.getElementById('dash-usage').textContent = `${usage.count} / ${limit === Infinity ? '∞' : limit} used`;
-    document.getElementById('dash-plan').textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-
-    if (plan !== 'free') {
-      document.getElementById('btn-upgrade').textContent = 'Manage Plan';
-    }
-
+    document.getElementById('dash-plan').textContent = getPlan().charAt(0).toUpperCase() + getPlan().slice(1);
     const warning = document.getElementById('usage-warning');
-    if (!canGenerate()) {
-      warning.classList.remove('hidden');
-    } else {
-      warning.classList.add('hidden');
-    }
+    if (usage.count >= limit && limit !== Infinity) warning.classList.remove('hidden');
+    else warning.classList.add('hidden');
   }
 
   // ========== DOM 元素 ==========
   const el = {
-    modeCsv: document.getElementById('mode-csv'),
-    modeManual: document.getElementById('mode-manual'),
     modeImage: document.getElementById('mode-image'),
     modeSmart: document.getElementById('mode-smart'),
+    modeCsv: document.getElementById('mode-csv'),
     modeHistory: document.getElementById('mode-history'),
-    modePrompts: document.getElementById('mode-prompts'),
-    csvSection: document.getElementById('csv-section'),
-    manualSection: document.getElementById('manual-section'),
     imageSection: document.getElementById('image-section'),
     smartSection: document.getElementById('smart-section'),
+    csvSection: document.getElementById('csv-section'),
     historySection: document.getElementById('history-section'),
-    promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
     generateAllBtn: document.getElementById('generate-all'),
     dropZone: document.getElementById('drop-zone'),
@@ -184,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function () {
     csvPreview: document.getElementById('csv-preview'),
     productList: document.getElementById('product-list'),
     productCount: document.getElementById('product-count'),
-    manualForm: document.getElementById('manual-form'),
     loading: document.getElementById('loading'),
     resultSection: document.getElementById('result-section'),
     resultContent: document.getElementById('result-content'),
@@ -195,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 模式切换 ==========
   function switchMode(mode) {
-    ['csv', 'manual', 'image', 'smart', 'history', 'prompts'].forEach(m => {
+    ['image', 'smart', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -208,40 +154,24 @@ document.addEventListener('DOMContentLoaded', function () {
       el.generateSection.classList.remove('hidden');
     }
     if (mode === 'history') renderHistory();
-    if (mode === 'prompts') initChat();
   }
 
-  el.modeCsv.addEventListener('click', () => switchMode('csv'));
-  el.modeManual.addEventListener('click', () => switchMode('manual'));
   el.modeImage.addEventListener('click', () => switchMode('image'));
   el.modeSmart.addEventListener('click', () => switchMode('smart'));
+  el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
-  el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
   // ========== CSV 上传 ==========
-  el.dropZone.addEventListener('click', function() {
-    el.csvInput.value = '';
-    el.csvInput.click();
-  });
-
-  el.csvInput.addEventListener('change', function() {
-    if (this.files.length) handleCsvFile(this.files[0]);
-  });
-
-  el.dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault();
-    this.classList.add('drag-over');
-  });
-  el.dropZone.addEventListener('dragleave', function() {
-    this.classList.remove('drag-over');
-  });
+  el.dropZone.addEventListener('click', function() { el.csvInput.value = ''; el.csvInput.click(); });
+  el.csvInput.addEventListener('change', function() { if (this.files.length) handleCsvFile(this.files[0]); });
+  el.dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+  el.dropZone.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
   el.dropZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    this.classList.remove('drag-over');
+    e.preventDefault(); this.classList.remove('drag-over');
     if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
   });
 
-  let csvProductSelected = []; // 记录每个产品的勾选状态
+  let csvProductSelected = [];
 
   async function handleCsvFile(file) {
     if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file'); return; }
@@ -256,15 +186,12 @@ document.addEventListener('DOMContentLoaded', function () {
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        const row = {};
-        headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+        const row = {}; headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
         const product = {
           product_name: (row['product_name_en'] || row['product_name'] || row['Product Name'] || row['product_name_cn'] || '').trim(),
           keywords: [row['keywords'], row['technique'], row['target_audience'], row['usage_scene']].filter(Boolean).join(', '),
-          material: (row['material'] || '').trim(),
-          size: (row['size'] || '').trim(),
-          color: (row['color'] || '').trim(),
-          occasion: (row['occasion'] || row['usage_scene'] || '').trim()
+          material: (row['material'] || '').trim(), size: (row['size'] || '').trim(),
+          color: (row['color'] || '').trim(), occasion: (row['occasion'] || row['usage_scene'] || '').trim()
         };
         if (product.product_name) csvProducts.push(product);
       }
@@ -274,9 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
       el.csvPreview.classList.remove('hidden');
       el.generateSection.classList.remove('hidden');
       updateSelectedCount();
-    } catch (err) {
-      alert('CSV parse error: ' + err.message);
-    }
+    } catch (err) { alert('CSV parse error: ' + err.message); }
   }
 
   function renderProductList() {
@@ -293,134 +218,158 @@ document.addEventListener('DOMContentLoaded', function () {
       ).join('');
   }
 
-  window.toggleProduct = function (index) {
-    csvProductSelected[index] = !csvProductSelected[index];
-    renderProductList();
-    updateSelectedCount();
-  };
-
-  window.toggleSelectAll = function (checked) {
-    csvProductSelected = csvProductSelected.map(() => checked);
-    renderProductList();
-    updateSelectedCount();
-  };
-
+  window.toggleProduct = function(i) { csvProductSelected[i] = !csvProductSelected[i]; renderProductList(); updateSelectedCount(); };
+  window.toggleSelectAll = function(checked) { csvProductSelected = csvProductSelected.map(() => checked); renderProductList(); updateSelectedCount(); };
   function updateSelectedCount() {
-    const count = csvProductSelected.filter(Boolean).length;
-    el.productCount.textContent = count;
-    el.generateAllBtn.disabled = count === 0;
+    const c = csvProductSelected.filter(Boolean).length;
+    el.productCount.textContent = c;
+    el.generateAllBtn.disabled = c === 0;
   }
-
-  function getSelectedProducts() {
-    return csvProducts.filter((_, i) => csvProductSelected[i]);
-  }
-
-  // ========== 手动输入 ==========
-  el.manualForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (!canGenerate()) {
-      alert('You have reached your monthly limit. Please upgrade your plan.');
-      return;
-    }
-    const product = {
-      product_name: document.getElementById('manual-name').value.trim(),
-      keywords: document.getElementById('manual-keywords').value.trim(),
-      material: document.getElementById('manual-material').value.trim() || 'See photos',
-      size: document.getElementById('manual-size').value.trim() || 'See photos',
-      color: document.getElementById('manual-color').value.trim(),
-      occasion: document.getElementById('manual-occasion').value.trim()
-    };
-    if (!product.product_name) { alert('Please enter a product name'); return; }
-    showLoading(true);
-    try {
-      const result = await callApi(product, refImageBase64);
-      if (!result.error) {
-        addUsage();
-        saveHistory({ product_name: product.product_name, text: result.text });
-        refreshDashboard();
-      }
-      showResults([result]);
-    } catch (err) {
-      alert('Generation failed: ' + err.message);
-    } finally {
-      showLoading(false);
-    }
-  });
+  function getSelectedProducts() { return csvProducts.filter((_, i) => csvProductSelected[i]); }
 
   // ========== CSV 批量生成 ==========
   el.generateAllBtn.addEventListener('click', async () => {
     const selected = getSelectedProducts();
     if (selected.length === 0) { alert('No products selected'); return; }
     const remaining = getLimit() - getUsage().count;
-    if (remaining <= 0) {
-      alert('You have reached your monthly limit. Please upgrade your plan.');
-      return;
-    }
-    const toGenerate = selected.slice(0, remaining);
-    if (toGenerate.length < selected.length) {
-      if (!confirm(`You can only generate ${remaining} more this month. Continue with the first ${remaining} products?`)) return;
-    }
+    if (remaining <= 0) { alert('Monthly limit reached. Please upgrade.'); return; }
+    const toGen = selected.slice(0, remaining);
+    if (toGen.length < selected.length && !confirm(`You can only generate ${remaining} more. Continue?`)) return;
     showLoading(true);
     const results = [];
-    for (const product of toGenerate) {
+    for (const product of toGen) {
       const result = await callApi(product);
-      if (!result.error) {
-        addUsage();
-        saveHistory({ product_name: product.product_name, text: result.text });
-      }
+      if (!result.error) { addUsage(); saveHistory({ product_name: product.product_name, text: result.text }); }
       results.push(result);
     }
-    refreshDashboard();
-    showResults(results);
-    showLoading(false);
+    refreshDashboard(); showResults(results); showLoading(false);
   });
 
   // ========== API 调用 ==========
-  async function callApi(product, imageBase64) {
+  async function callApi(product) {
     try {
       const customPrompts = getCustomPrompts();
       const body = { product };
       if (customPrompts) body.customPrompts = customPrompts;
-      if (imageBase64) body.imageBase64 = imageBase64;
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
       return { product, text: data.text };
+    } catch (err) { return { product, error: err.message }; }
+  }
+
+  // ========== Smart Generate ==========
+  document.getElementById('btn-smart-generate').addEventListener('click', async () => {
+    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+    const keyword = document.getElementById('smart-keyword').value.trim();
+    if (!keyword) { alert('Please enter a search keyword'); return; }
+    const productInfo = {
+      product_name: document.getElementById('smart-product-name').value.trim() || keyword,
+      material: document.getElementById('smart-material').value.trim(),
+      color: document.getElementById('smart-color').value.trim(),
+      occasion: document.getElementById('smart-occasion').value.trim()
+    };
+    const progress = document.getElementById('smart-progress');
+    const report = document.getElementById('smart-report');
+    progress.classList.remove('hidden'); report.classList.add('hidden'); el.resultSection.classList.add('hidden');
+    setSmartStep('search', 'active', 'Searching...'); setSmartStep('analyze', '', 'waiting'); setSmartStep('generate', '', 'waiting');
+    try {
+      setTimeout(() => { setSmartStep('search', 'done', 'Found competitors'); setSmartStep('analyze', 'active', 'Analyzing...'); }, 2000);
+      setTimeout(() => { setSmartStep('analyze', 'done', 'Analysis complete'); setSmartStep('generate', 'active', 'Generating...'); }, 5000);
+      const customPrompts = getCustomPrompts();
+      const res = await fetch('/api/smart-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, productInfo, customPrompts }) });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
+      setSmartStep('search', 'done', `Found ${data.competitorCount} competitors`);
+      setSmartStep('analyze', 'done', 'Analysis complete');
+      setSmartStep('generate', 'done', 'Listing generated!');
+      if (data.competitorReport) { document.getElementById('smart-report-content').textContent = data.competitorReport; report.classList.remove('hidden'); }
+      addUsage(); saveHistory({ product_name: productInfo.product_name, text: data.listing }); refreshDashboard();
+      showResults([{ product: productInfo, text: data.listing }]);
     } catch (err) {
-      return { product, error: err.message };
+      setSmartStep('generate', '', 'Failed: ' + err.message);
+      alert('Smart Generate failed: ' + err.message);
+    }
+  });
+
+  function setSmartStep(step, state, statusText) {
+    const e = document.getElementById('step-' + step);
+    const s = document.getElementById('step-' + step + '-status');
+    if (e) e.className = 'smart-step' + (state ? ' ' + state : '');
+    if (s && statusText !== undefined) s.textContent = statusText;
+  }
+
+  document.getElementById('toggle-report')?.addEventListener('click', () => {
+    const body = document.getElementById('smart-report-body');
+    const icon = document.querySelector('#toggle-report .smart-toggle-report i');
+    body.classList.toggle('hidden');
+    if (icon) { icon.classList.toggle('fa-chevron-up'); icon.classList.toggle('fa-chevron-down'); }
+  });
+
+  // ========== Image Upload ==========
+  let uploadedImages = [];
+  const imgDropZone = document.getElementById('img-drop-zone');
+  const imgInput = document.getElementById('img-input');
+  const imgPreviewArea = document.getElementById('img-preview-area');
+  const imgPreviewGrid = document.getElementById('img-preview-grid');
+  const imgExtraFields = document.getElementById('img-extra-fields');
+
+  imgDropZone.addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+  imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
+  imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
+  imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
+  imgDropZone.addEventListener('drop', e => { e.preventDefault(); imgDropZone.classList.remove('drag-over'); handleImageFiles(e.dataTransfer.files); });
+  document.getElementById('btn-add-more-img').addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+
+  function handleImageFiles(files) {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB): ' + file.name); continue; }
+      if (uploadedImages.length >= 4) { alert('Maximum 4 images'); break; }
+      const reader = new FileReader();
+      reader.onload = e => { uploadedImages.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
+      reader.readAsDataURL(file);
     }
   }
 
-  // ========== 解析四板块结果 ==========
-  function parseSections(text) {
-    const sections = { title: '', description: '', tags: '', attributes: '' };
-    const markers = [
-      { key: 'title', regex: /【标题】/i },
-      { key: 'description', regex: /【描述】/i },
-      { key: 'tags', regex: /【标签】/i },
-      { key: 'attributes', regex: /【属性】/i }
-    ];
-    const positions = markers.map(m => {
-      const match = text.match(m.regex);
-      return { key: m.key, index: match ? match.index : -1 };
-    }).filter(p => p.index >= 0).sort((a, b) => a.index - b.index);
-
-    for (let i = 0; i < positions.length; i++) {
-      const start = positions[i].index + text.match(markers.find(m => m.key === positions[i].key).regex)[0].length;
-      const end = i + 1 < positions.length ? positions[i + 1].index : text.length;
-      sections[positions[i].key] = text.slice(start, end).trim();
+  function renderImagePreviews() {
+    if (uploadedImages.length === 0) {
+      imgPreviewArea.classList.add('hidden'); imgExtraFields.classList.add('hidden'); imgDropZone.style.display = ''; return;
     }
-    if (positions.length === 0) sections.description = text;
-    return sections;
+    imgDropZone.style.display = 'none';
+    imgPreviewArea.classList.remove('hidden'); imgExtraFields.classList.remove('hidden');
+    imgPreviewGrid.innerHTML = uploadedImages.map((img, i) =>
+      `<div class="img-thumb"><img src="${img.dataUrl}" alt="Product ${i+1}"><button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button></div>`
+    ).join('');
   }
 
-  // ========== 显示结果 ==========
-  let lastResults = []; // 保存最近一次生成结果用于导出
-  let resultExportSelected = []; // 每个结果的勾选状态
+  window.removeImage = function(i) { uploadedImages.splice(i, 1); renderImagePreviews(); };
+
+  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
+    if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
+    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+    showLoading(true);
+    try {
+      const product = {
+        product_name: document.getElementById('img-product-name').value.trim() || 'Product from image',
+        material: document.getElementById('img-material').value.trim(),
+        occasion: document.getElementById('img-occasion').value.trim(), keywords: ''
+      };
+      const customPrompts = getCustomPrompts();
+      const body = { product, imageBase64: uploadedImages[0].dataUrl };
+      if (customPrompts) body.customPrompts = customPrompts;
+      const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+      addUsage(); saveHistory({ product_name: product.product_name, text: data.text }); refreshDashboard();
+      showResults([{ product, text: data.text }]);
+    } catch (err) { alert('Generation failed: ' + err.message); }
+    finally { showLoading(false); }
+  });
+
+  // ========== 结果展示 ==========
+  let lastResults = [];
+  let resultExportSelected = [];
 
   function showResults(results) {
     lastResults = results.filter(r => !r.error);
@@ -432,10 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <button class="btn-export-results" onclick="exportResultsCsv()"><i class="fas fa-download"></i> Export Selected as CSV (<span id="export-count">${lastResults.length}</span>)</button>
       </div>` +
       results.map((item, i) => {
-        if (item.error) {
-          return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${escapeHtml(item.product.product_name)}</span></div><div class="block-content" style="color:#e53e3e;">${escapeHtml(item.error)}</div></div>`;
-        }
-        // 找到在 lastResults 中的真实索引
+        if (item.error) return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${escapeHtml(item.product.product_name)}</span></div><div class="block-content" style="color:#e53e3e;">${escapeHtml(item.error)}</div></div>`;
         const realIdx = lastResults.indexOf(item);
         return buildResultHtml(item, i, realIdx);
       }).join('');
@@ -443,67 +389,45 @@ document.addEventListener('DOMContentLoaded', function () {
     el.resultSection.scrollIntoView({ behavior: 'smooth' });
   }
 
-  window.toggleExportSelect = function (realIdx, event) {
+  window.toggleExportSelect = function(realIdx, event) {
     event.stopPropagation();
     resultExportSelected[realIdx] = !resultExportSelected[realIdx];
     const cb = document.getElementById('export-cb-' + realIdx);
     if (cb) cb.checked = resultExportSelected[realIdx];
-    updateExportCount();
+    const c = document.getElementById('export-count');
+    if (c) c.textContent = resultExportSelected.filter(Boolean).length;
   };
 
-  function updateExportCount() {
-    const countEl = document.getElementById('export-count');
-    if (countEl) countEl.textContent = resultExportSelected.filter(Boolean).length;
-  }
-
-  window.toggleProductResult = function (index) {
+  window.toggleProductResult = function(index) {
     const body = document.getElementById('product-body-' + index);
     const icon = document.getElementById('product-toggle-' + index);
-    if (body.classList.contains('hidden')) {
-      body.classList.remove('hidden');
-      icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
-    } else {
-      body.classList.add('hidden');
-      icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
-    }
+    if (body.classList.contains('hidden')) { body.classList.remove('hidden'); icon.classList.replace('fa-chevron-right', 'fa-chevron-down'); }
+    else { body.classList.add('hidden'); icon.classList.replace('fa-chevron-down', 'fa-chevron-right'); }
   };
 
-  window.toggleAllProducts = function (expand) {
-    document.querySelectorAll('.product-body').forEach(el => {
-      el.classList.toggle('hidden', !expand);
-    });
+  window.toggleAllProducts = function(expand) {
+    document.querySelectorAll('.product-body').forEach(el => el.classList.toggle('hidden', !expand));
     document.querySelectorAll('.product-toggle-icon').forEach(icon => {
       if (expand) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
       else icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
     });
   };
 
-  window.exportResultsCsv = function () {
+  window.exportResultsCsv = function() {
     const selected = lastResults.filter((_, i) => resultExportSelected[i]);
     if (selected.length === 0) { alert('No products selected for export'); return; }
-
     const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
     selected.forEach(item => {
       const s = parseSections(item.text);
       const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
       while (titles.length < 3) titles.push('');
       const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
-
-      rows.push([
-        item.product.product_name,
-        titles[0], titles[1], titles[2],
-        s.description,
-        tags,
-        s.attributes
-      ]);
+      rows.push([item.product.product_name, titles[0], titles[1], titles[2], s.description, tags, s.attributes]);
     });
-
-    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""').replace(/\n/g, '\n') + '"').join(',')).join('\n');
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'listingpaw_results_' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'listingpaw_results_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
   };
 
   function buildResultHtml(item, index, realIdx) {
@@ -516,83 +440,63 @@ document.addEventListener('DOMContentLoaded', function () {
         <h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>
       </div>
       <div id="product-body-${index}" class="product-body">`;
-
-    const blocks = [
-      { key: 'title', icon: '🏷️', label: 'Etsy Titles (3 Options)' },
-      { key: 'description', icon: '📝', label: 'Product Description' },
-      { key: 'tags', icon: '🔖', label: 'Etsy Tags (13)' },
-      { key: 'attributes', icon: '📋', label: 'Listing Attributes' }
-    ];
-
-    blocks.forEach(b => {
-      if (!s[b.key]) return;
-      let content;
-      if (b.key === 'tags') {
-        const tagLine = s.tags.replace(/\n/g, ' ').trim();
-        const tags = tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean);
-        content = `<div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div><div class="tags-raw">${escapeHtml(tagLine)}</div>`;
-      } else {
-        content = formatText(s[b.key]);
-      }
-      html += `<div class="result-block">
-        <div class="block-header"><span class="block-icon">${b.icon}</span><span class="block-label">${b.label}</span>
-          <button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div>
-        <div class="block-content copyable">${content}</div>
-      </div>`;
-    });
-
+    if (s.title) html += `<div class="result-block"><div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy Titles</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.title)}</div></div>`;
+    if (s.description) html += `<div class="result-block"><div class="block-header"><span class="block-icon">📝</span><span class="block-label">Description</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.description)}</div></div>`;
+    if (s.tags) {
+      const tagLine = s.tags.replace(/\n/g, ' ').trim();
+      html += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
+    }
+    if (s.attributes) html += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
     html += '</div></div>';
     return html;
   }
 
-  function formatText(text) {
-    return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  function parseSections(text) {
+    const sections = { title: '', description: '', tags: '', attributes: '' };
+    const markers = [{ key: 'title', regex: /【标题】/i }, { key: 'description', regex: /【描述】/i }, { key: 'tags', regex: /【标签】/i }, { key: 'attributes', regex: /【属性】/i }];
+    const positions = markers.map(m => { const match = text.match(m.regex); return { key: m.key, index: match ? match.index : -1 }; }).filter(p => p.index >= 0).sort((a, b) => a.index - b.index);
+    for (let i = 0; i < positions.length; i++) {
+      const start = positions[i].index + text.match(markers.find(m => m.key === positions[i].key).regex)[0].length;
+      const end = i + 1 < positions.length ? positions[i + 1].index : text.length;
+      sections[positions[i].key] = text.slice(start, end).trim();
+    }
+    if (positions.length === 0) sections.description = text;
+    return sections;
   }
 
-  function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
+  function formatText(text) { return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
+  function escapeHtml(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function renderTags(tagLine) { return tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(''); }
 
-  window.copyText = function (btn) {
+  window.copyText = function(btn) {
     const content = btn.closest('.result-block').querySelector('.copyable');
     const text = content.innerText || content.textContent;
     navigator.clipboard.writeText(text).then(() => {
-      const orig = btn.textContent;
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
+      const orig = btn.textContent; btn.textContent = '✅ Copied'; setTimeout(() => btn.textContent = orig, 2000);
     }).catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta); ta.select();
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); document.body.removeChild(ta);
-      btn.textContent = '✅ Copied!';
-      setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+      const orig = btn.textContent; btn.textContent = '✅ Copied'; setTimeout(() => btn.textContent = orig, 2000);
     });
   };
 
   // ========== 历史记录 ==========
-  let historySelected = new Set(); // 已选中的历史索引
-  let historyViewOpen = new Set(); // 已展开查看的历史索引
+  let historySelected = new Set();
+  let historyViewOpen = new Set();
 
   function renderHistory() {
     const history = getHistory();
     const list = document.getElementById('history-list');
     const empty = document.getElementById('history-empty');
-
-    if (history.length === 0) {
-      list.innerHTML = '';
-      empty.classList.remove('hidden');
-      return;
-    }
+    if (history.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
     empty.classList.add('hidden');
-
     const hasSelected = historySelected.size > 0;
-
     list.innerHTML =
       `<div class="history-toolbar">
         <label class="history-select-all"><input type="checkbox" ${historySelected.size === history.length ? 'checked' : ''} onchange="historyToggleAll(this.checked)"> Select All (${history.length})</label>
         <div class="history-toolbar-right">
           <span class="history-selected-count">${historySelected.size} selected</span>
-          <button class="btn-export" onclick="exportHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-download"></i> Export Selected CSV</button>
+          <button class="btn-export" onclick="exportHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-download"></i> Export CSV</button>
           <button class="btn-history-remove" onclick="removeHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-trash-alt"></i> Remove</button>
         </div>
       </div>` +
@@ -600,96 +504,54 @@ document.addEventListener('DOMContentLoaded', function () {
         const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const isSelected = historySelected.has(i);
         const isOpen = historyViewOpen.has(i);
-        let html = `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
+        return `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
           <div class="history-item-row">
             <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
-            <div class="history-item-toggle" onclick="historyToggleView(${i})">
-              <i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i>
-            </div>
+            <div class="history-item-toggle" onclick="historyToggleView(${i})"><i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i></div>
             <span class="history-item-name" onclick="historyToggleView(${i})">${escapeHtml(item.product_name)}</span>
             <span class="history-item-date">${date}</span>
           </div>
-          <div class="history-item-body ${isOpen ? '' : 'hidden'}" id="history-body-${i}">`;
-        if (isOpen) {
-          const s = parseSections(item.text);
-          if (s.title) html += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
-          if (s.description) html += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
-          if (s.tags) {
-            const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean);
-            html += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`;
-          }
-          if (s.attributes) html += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
-        }
-        html += `</div></div>`;
-        return html;
+          <div class="history-item-body ${isOpen ? '' : 'hidden'}" id="history-body-${i}"></div>
+        </div>`;
       }).join('');
   }
 
-  window.historyToggleSelect = function (index) {
-    if (historySelected.has(index)) historySelected.delete(index);
-    else historySelected.add(index);
-    renderHistory();
-  };
+  window.historyToggleSelect = function(i) { if (historySelected.has(i)) historySelected.delete(i); else historySelected.add(i); renderHistory(); };
+  window.historyToggleAll = function(checked) { const h = getHistory(); historySelected = checked ? new Set(h.map((_, i) => i)) : new Set(); renderHistory(); };
 
-  window.historyToggleAll = function (checked) {
-    const history = getHistory();
-    historySelected = checked ? new Set(history.map((_, i) => i)) : new Set();
-    renderHistory();
-  };
-
-  window.historyToggleView = function (index) {
+  window.historyToggleView = function(index) {
     const body = document.getElementById('history-body-' + index);
     if (!body) return;
-    const isOpen = historyViewOpen.has(index);
-
-    if (isOpen) {
-      // 收起：隐藏内容
-      body.classList.add('hidden');
-      historyViewOpen.delete(index);
-      // 更新箭头
-      const row = body.previousElementSibling;
-      const icon = row.querySelector('.history-toggle-icon');
-      if (icon) { icon.classList.replace('fa-chevron-down', 'fa-chevron-right'); }
+    if (historyViewOpen.has(index)) {
+      body.classList.add('hidden'); historyViewOpen.delete(index);
+      const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
+      if (icon) icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
     } else {
-      // 展开：填充内容并显示
       historyViewOpen.add(index);
-      const history = getHistory();
-      const item = history[index];
-      if (!item) return;
-      const s = parseSections(item.text);
-      let content = '';
+      const history = getHistory(); const item = history[index]; if (!item) return;
+      const s = parseSections(item.text); let content = '';
       if (s.title) content += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
       if (s.description) content += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
-      if (s.tags) {
-        const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean);
-        content += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`;
-      }
+      if (s.tags) { const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean); content += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`; }
       if (s.attributes) content += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
-      body.innerHTML = content;
-      body.classList.remove('hidden');
-      // 更新箭头
-      const row = body.previousElementSibling;
-      const icon = row.querySelector('.history-toggle-icon');
-      if (icon) { icon.classList.replace('fa-chevron-right', 'fa-chevron-down'); }
+      body.innerHTML = content; body.classList.remove('hidden');
+      const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
+      if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
     }
   };
 
-  window.removeHistorySelected = function () {
+  window.removeHistorySelected = function() {
     if (historySelected.size === 0) return;
-    if (!confirm(`Remove ${historySelected.size} item(s) from history?`)) return;
-    const history = getHistory();
-    const remaining = history.filter((_, i) => !historySelected.has(i));
+    if (!confirm(`Remove ${historySelected.size} item(s)?`)) return;
+    const h = getHistory(); const remaining = h.filter((_, i) => !historySelected.has(i));
     localStorage.setItem(getUserKey('history'), JSON.stringify(remaining));
-    historySelected.clear();
-    historyViewOpen.clear();
-    renderHistory();
+    historySelected.clear(); historyViewOpen.clear(); renderHistory();
   };
 
-  window.exportHistorySelected = function () {
+  window.exportHistorySelected = function() {
     if (historySelected.size === 0) { alert('No items selected'); return; }
     const history = getHistory();
     const selected = [...historySelected].sort((a, b) => a - b).map(i => history[i]).filter(Boolean);
-
     const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
     selected.forEach(item => {
       const s = parseSections(item.text);
@@ -698,358 +560,28 @@ document.addEventListener('DOMContentLoaded', function () {
       const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
       rows.push([item.product_name, titles[0], titles[1], titles[2], s.description, tags, s.attributes]);
     });
-
     const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'listingpaw_history_' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'listingpaw_history_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
   };
-
-  window.viewHistory = function (index) {
-    historyToggleView(index);
-  };
-
-  // ========== Smart Generate ==========
-  document.getElementById('btn-smart-generate').addEventListener('click', async () => {
-    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
-
-    const keyword = document.getElementById('smart-keyword').value.trim();
-    if (!keyword) { alert('Please enter a search keyword'); return; }
-
-    const productInfo = {
-      product_name: document.getElementById('smart-product-name').value.trim() || keyword,
-      material: document.getElementById('smart-material').value.trim(),
-      color: document.getElementById('smart-color').value.trim(),
-      occasion: document.getElementById('smart-occasion').value.trim()
-    };
-
-    // Show progress
-    const progress = document.getElementById('smart-progress');
-    const report = document.getElementById('smart-report');
-    progress.classList.remove('hidden');
-    report.classList.add('hidden');
-    el.resultSection.classList.add('hidden');
-
-    // Animate steps
-    setSmartStep('search', 'active', 'Searching...');
-    setSmartStep('analyze', '', 'waiting');
-    setSmartStep('generate', '', 'waiting');
-
-    try {
-      // Simulate step progression with actual API call
-      setTimeout(() => {
-        setSmartStep('search', 'done', 'Found competitors');
-        setSmartStep('analyze', 'active', 'Analyzing...');
-      }, 2000);
-
-      setTimeout(() => {
-        setSmartStep('analyze', 'done', 'Analysis complete');
-        setSmartStep('generate', 'active', 'Generating...');
-      }, 5000);
-
-      const customPrompts = getCustomPrompts();
-      const res = await fetch('/api/smart-generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, productInfo, customPrompts })
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
-
-      // All steps done
-      setSmartStep('search', 'done', `Found ${data.competitorCount} competitors`);
-      setSmartStep('analyze', 'done', 'Analysis complete');
-      setSmartStep('generate', 'done', 'Listing generated!');
-
-      // Show competitor report
-      if (data.competitorReport) {
-        document.getElementById('smart-report-content').textContent = data.competitorReport;
-        report.classList.remove('hidden');
-      }
-
-      // Show generated listing
-      addUsage();
-      saveHistory({ product_name: productInfo.product_name, text: data.listing });
-      refreshDashboard();
-      showResults([{ product: productInfo, text: data.listing }]);
-
-    } catch (err) {
-      setSmartStep('search', 'done', '');
-      setSmartStep('analyze', 'done', '');
-      setSmartStep('generate', '', 'Failed: ' + err.message);
-      alert('Smart Generate failed: ' + err.message);
-    }
-  });
-
-  function setSmartStep(step, state, statusText) {
-    const el = document.getElementById('step-' + step);
-    const status = document.getElementById('step-' + step + '-status');
-    if (el) {
-      el.className = 'smart-step' + (state ? ' ' + state : '');
-    }
-    if (status && statusText !== undefined) {
-      status.textContent = statusText;
-    }
-  }
-
-  // Toggle report
-  document.getElementById('toggle-report')?.addEventListener('click', () => {
-    const body = document.getElementById('smart-report-body');
-    const icon = document.querySelector('#toggle-report i');
-    body.classList.toggle('hidden');
-    icon.classList.toggle('fa-chevron-up');
-    icon.classList.toggle('fa-chevron-down');
-  });
-
-  // ========== Image Upload ==========
-  let uploadedImages = []; // { file, dataUrl }
-
-  const imgDropZone = document.getElementById('img-drop-zone');
-  const imgInput = document.getElementById('img-input');
-  const imgPreviewArea = document.getElementById('img-preview-area');
-  const imgPreviewGrid = document.getElementById('img-preview-grid');
-  const imgExtraFields = document.getElementById('img-extra-fields');
-
-  imgDropZone.addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
-  imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
-  imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
-  imgDropZone.addEventListener('drop', e => {
-    e.preventDefault(); imgDropZone.classList.remove('drag-over');
-    handleImageFiles(e.dataTransfer.files);
-  });
-  imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
-  document.getElementById('btn-add-more-img').addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
-
-  function handleImageFiles(files) {
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
-      if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB): ' + file.name); continue; }
-      if (uploadedImages.length >= 4) { alert('Maximum 4 images allowed'); break; }
-      const reader = new FileReader();
-      reader.onload = e => {
-        uploadedImages.push({ file, dataUrl: e.target.result });
-        renderImagePreviews();
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function renderImagePreviews() {
-    if (uploadedImages.length === 0) {
-      imgPreviewArea.classList.add('hidden');
-      imgExtraFields.classList.add('hidden');
-      imgDropZone.style.display = '';
-      return;
-    }
-    imgDropZone.style.display = 'none';
-    imgPreviewArea.classList.remove('hidden');
-    imgExtraFields.classList.remove('hidden');
-    imgPreviewGrid.innerHTML = uploadedImages.map((img, i) =>
-      `<div class="img-thumb">
-        <img src="${img.dataUrl}" alt="Product ${i+1}">
-        <button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button>
-      </div>`
-    ).join('');
-  }
-
-  window.removeImage = function(index) {
-    uploadedImages.splice(index, 1);
-    renderImagePreviews();
-  };
-
-  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
-    if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
-    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
-    showLoading(true);
-    try {
-      const product = {
-        product_name: document.getElementById('img-product-name').value.trim() || 'Product from image',
-        material: document.getElementById('img-material').value.trim(),
-        occasion: document.getElementById('img-occasion').value.trim(),
-        keywords: ''
-      };
-      const imageBase64 = uploadedImages[0].dataUrl;
-      const customPrompts = getCustomPrompts();
-      const body = { product, imageBase64 };
-      if (customPrompts) body.customPrompts = customPrompts;
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
-      addUsage();
-      saveHistory({ product_name: product.product_name, text: data.text });
-      refreshDashboard();
-      showResults([{ product, text: data.text }]);
-    } catch (err) {
-      alert('Generation failed: ' + err.message);
-    } finally {
-      showLoading(false);
-    }
-  });
-
-  // ========== Chat-Style Prompt Settings ==========
-  const SECTION_NAMES = { title: '🏷️ Title', description: '📝 Description', tags: '🔖 Tags', attributes: '📋 Attributes' };
-  let currentChatSection = null;
-  let chatInitialized = false;
-
-  function initChat() {
-    if (chatInitialized) return;
-    chatInitialized = true;
-    // Show existing custom prompts as messages
-    const saved = getSavedPrompts();
-    PROMPT_SECTIONS.forEach(key => {
-      if (saved[key]?.trim()) {
-        addChatMsg('user', `${SECTION_NAMES[key]}: ${saved[key]}`);
-        addChatMsg('ai', `Got it! Your custom ${key} prompt is saved and active. ✅`);
-      }
-    });
-  }
-
-  function addChatMsg(role, text, extra) {
-    const container = document.getElementById('chat-messages');
-    const div = document.createElement('div');
-    div.className = 'chat-msg chat-' + role;
-    const avatarIcon = role === 'ai' ? 'fa-paw' : 'fa-user';
-    div.innerHTML = `<div class="chat-avatar"><i class="fas ${avatarIcon}"></i></div>
-      <div class="chat-bubble"><p>${escapeHtml(text)}</p>${extra || ''}</div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-  }
-
-  window.selectPromptSection = function(section) {
-    currentChatSection = section;
-    const indicator = document.getElementById('chat-section-indicator');
-    document.getElementById('chat-editing-label').textContent = 'Editing: ' + SECTION_NAMES[section];
-    indicator.classList.remove('hidden');
-    document.getElementById('chat-input').focus();
-    // Highlight active chip
-    document.querySelectorAll('.chat-chip').forEach(c => c.classList.remove('active'));
-    const chips = document.querySelectorAll('.chat-chip');
-    chips.forEach(c => { if (c.textContent.includes(section.charAt(0).toUpperCase() + section.slice(1))) c.classList.add('active'); });
-  };
-
-  window.clearPromptSection = function() {
-    currentChatSection = null;
-    document.getElementById('chat-section-indicator').classList.add('hidden');
-    document.querySelectorAll('.chat-chip').forEach(c => c.classList.remove('active'));
-  };
-
-  // Send chat message
-  document.getElementById('chat-send-btn').addEventListener('click', sendChatMessage);
-  document.getElementById('chat-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-  });
-
-  // Auto-resize textarea
-  document.getElementById('chat-input').addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-  });
-
-  function sendChatMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-
-    if (!currentChatSection) {
-      // Try to detect section from keywords
-      const lower = text.toLowerCase();
-      if (lower.includes('title')) currentChatSection = 'title';
-      else if (lower.includes('description') || lower.includes('desc')) currentChatSection = 'description';
-      else if (lower.includes('tag')) currentChatSection = 'tags';
-      else if (lower.includes('attribute') || lower.includes('attr')) currentChatSection = 'attributes';
-      else {
-        addChatMsg('user', text);
-        addChatMsg('ai', 'Please select a section first (Title, Description, Tags, or Attributes), then type your custom prompt.',
-          `<div class="chat-quick-actions">
-            <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
-            <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
-            <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
-            <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
-          </div>`);
-        input.value = '';
-        input.style.height = 'auto';
-        return;
-      }
-    }
-
-    addChatMsg('user', text);
-
-    // Save prompt
-    const saved = getSavedPrompts();
-    saved[currentChatSection] = text;
-    localStorage.setItem(getUserKey('prompts'), JSON.stringify(saved));
-
-    // Save to prompt history
-    addPromptHistory(currentChatSection, text);
-
-    addChatMsg('ai', `Your ${SECTION_NAMES[currentChatSection]} prompt has been saved! It will be used for all future generations.`,
-      `<div class="chat-status"><i class="fas fa-check-circle"></i> ${SECTION_NAMES[currentChatSection]} — Custom Active</div>
-       <div class="chat-quick-actions" style="margin-top:10px">
-         <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
-         <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
-         <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
-         <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
-         <button class="chat-chip" onclick="resetAllPrompts()">🔄 Reset All</button>
-       </div>`);
-
-    input.value = '';
-    input.style.height = 'auto';
-    clearPromptSection();
-  }
-
-  window.resetAllPrompts = function() {
-    localStorage.removeItem(getUserKey('prompts'));
-    addChatMsg('ai', 'All prompts have been reset to default! 🔄',
-      `<div class="chat-quick-actions">
-        <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
-        <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
-        <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
-        <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
-      </div>`);
-  };
-
-  function getPromptHistory(section) {
-    try { return JSON.parse(localStorage.getItem(getUserKey('prompt_history_' + section))) || []; } catch { return []; }
-  }
-
-  function addPromptHistory(section, text) {
-    if (!text || !text.trim()) return;
-    const history = getPromptHistory(section);
-    if (history.length > 0 && history[0].text === text.trim()) return;
-    history.unshift({ text: text.trim(), date: new Date().toISOString() });
-    if (history.length > 5) history.length = 5;
-    localStorage.setItem(getUserKey('prompt_history_' + section), JSON.stringify(history));
-  }
 
   // ========== 工具 ==========
-  function showLoading(show) {
-    el.loading.classList.toggle('hidden', !show);
-    if (show) el.resultSection.classList.add('hidden');
-  }
+  function showLoading(show) { el.loading.classList.toggle('hidden', !show); if (show) el.resultSection.classList.add('hidden'); }
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
-    if (el.modeCsv.classList.contains('active')) switchMode('csv');
-    else if (el.modeImage.classList.contains('active')) switchMode('image');
+    if (el.modeImage.classList.contains('active')) switchMode('image');
     else if (el.modeSmart.classList.contains('active')) switchMode('smart');
+    else if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
-    else if (el.modePrompts.classList.contains('active')) switchMode('prompts');
-    else switchMode('manual');
+    else switchMode('image');
+    if (csvProducts.length > 0) { el.csvPreview.classList.remove('hidden'); el.generateSection.classList.remove('hidden'); }
   });
 
   // ========== 初始化 ==========
   updateLandingNav();
   const initUser = getUser();
-  if (initUser) {
-    showPage('dashboard');
-  } else {
-    showPage('landing');
-  }
+  if (initUser) showPage('dashboard');
+  else showPage('landing');
 });

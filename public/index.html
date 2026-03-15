@@ -19,57 +19,54 @@
                 <a href="#pricing">Pricing</a>
                 <button class="btn-nav" id="landing-btn-login" onclick="showPage('login')">Log In</button>
                 <button class="btn-nav btn-nav-primary" id="landing-btn-signup" onclick="goToApp()">Start Free</button>
-                <button class="btn-nav" id="landing-btn-dashboard" onclick="showPage('dashboard')" class="hidden">Dashboard</button>
-                <button class="btn-nav" id="landing-btn-logout" class="hidden">Log Out</button>
+                <button class="btn-nav hidden" id="landing-btn-dashboard" onclick="showPage('dashboard')">Dashboard</button>
+                <button class="btn-nav hidden" id="landing-btn-logout">Log Out</button>
             </div>
         </nav>
 
-        <!-- Hero -->
         <section class="hero">
             <h1>Stop Writing. Start Selling.</h1>
-            <p class="hero-sub">AI-powered Etsy listing copywriter that generates SEO-optimized titles, descriptions, tags & attributes in seconds.</p>
+            <p class="hero-sub">AI-powered Etsy listing copywriter. Upload images, search competitors, and generate SEO-optimized copy in seconds.</p>
             <button class="btn-hero" onclick="goToApp()">Get 20 Free Generations <i class="fas fa-arrow-right"></i></button>
             <p class="hero-note">No credit card required</p>
         </section>
 
-        <!-- Features -->
         <section id="features" class="features-section">
             <h2>Everything You Need to Rank on Etsy</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-heading"></i></div>
-                    <h3>SEO Titles</h3>
-                    <p>3 optimized title options per product, packed with trending keywords and gift-related terms.</p>
+                    <div class="feature-icon"><i class="fas fa-image"></i></div>
+                    <h3>Image to Copy</h3>
+                    <p>Upload product photos — AI identifies your product and generates complete listing copy automatically.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-align-left"></i></div>
-                    <h3>Rich Descriptions</h3>
-                    <p>Emotionally engaging, story-driven product descriptions with promo tags, reviews & CTAs.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-tags"></i></div>
-                    <h3>Smart Tags</h3>
-                    <p>13 SEO tags per product based on 2026 Etsy trending searches. Copy-paste ready.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-list-check"></i></div>
-                    <h3>Auto Attributes</h3>
-                    <p>Automatically fills Etsy listing attributes like color, material, occasion & recipient.</p>
+                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                    <h3>Smart Generate</h3>
+                    <p>Enter a keyword — AI searches competitors, analyzes trends, and creates differentiated copy that outranks.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="fas fa-file-csv"></i></div>
-                    <h3>Bulk CSV Upload</h3>
-                    <p>Upload your product spreadsheet and generate copy for all products at once.</p>
+                    <h3>CSV Bulk Upload</h3>
+                    <p>Upload your product spreadsheet and generate copy for all products at once. Export results as CSV.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-tags"></i></div>
+                    <h3>SEO Titles & Tags</h3>
+                    <p>3 optimized title options and 13 SEO tags per product, based on trending Etsy keywords.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+                    <h3>Competitor Analysis</h3>
+                    <p>Real-time competitor search with market trends, pricing analysis, and gap identification.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="fas fa-clock-rotate-left"></i></div>
                     <h3>History & Export</h3>
-                    <p>All generated copy is saved. Export anytime as CSV for easy Etsy upload.</p>
+                    <p>All generated copy is saved. Select and export anytime as CSV for easy Etsy upload.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Pricing -->
         <section id="pricing" class="pricing-section">
             <h2>Simple, Transparent Pricing</h2>
             <p class="pricing-sub">Start free. Upgrade when you're ready.</p>
@@ -79,9 +76,9 @@
                     <div class="pricing-price">$0<span>/mo</span></div>
                     <ul class="pricing-features">
                         <li><i class="fas fa-check"></i> 20 generations / month</li>
-                        <li><i class="fas fa-check"></i> Manual input only</li>
+                        <li><i class="fas fa-check"></i> Image Upload</li>
+                        <li><i class="fas fa-check"></i> Smart Generate</li>
                         <li><i class="fas fa-check"></i> All 4 content sections</li>
-                        <li><i class="fas fa-check"></i> Copy to clipboard</li>
                         <li class="disabled"><i class="fas fa-times"></i> CSV bulk upload</li>
                         <li class="disabled"><i class="fas fa-times"></i> History & export</li>
                     </ul>
@@ -93,11 +90,11 @@
                     <div class="pricing-price">$9.99<span>/mo</span></div>
                     <ul class="pricing-features">
                         <li><i class="fas fa-check"></i> 100 generations / month</li>
+                        <li><i class="fas fa-check"></i> Image Upload</li>
+                        <li><i class="fas fa-check"></i> Smart Generate</li>
                         <li><i class="fas fa-check"></i> CSV bulk upload</li>
-                        <li><i class="fas fa-check"></i> All 4 content sections</li>
                         <li><i class="fas fa-check"></i> History & export</li>
                         <li><i class="fas fa-check"></i> Priority support</li>
-                        <li class="disabled"><i class="fas fa-times"></i> API access</li>
                     </ul>
                     <button class="btn-pricing btn-pricing-primary" onclick="goToApp()">Start Pro Trial</button>
                 </div>
@@ -106,18 +103,17 @@
                     <div class="pricing-price">$29.99<span>/mo</span></div>
                     <ul class="pricing-features">
                         <li><i class="fas fa-check"></i> Unlimited generations</li>
-                        <li><i class="fas fa-check"></i> CSV bulk upload</li>
-                        <li><i class="fas fa-check"></i> All 4 content sections</li>
-                        <li><i class="fas fa-check"></i> History & export</li>
-                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> Everything in Pro</li>
                         <li><i class="fas fa-check"></i> API access</li>
+                        <li><i class="fas fa-check"></i> Competitor deep analysis</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> Early access to new features</li>
                     </ul>
                     <button class="btn-pricing" onclick="goToApp()">Go Unlimited</button>
                 </div>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="landing-footer">
             <p>&copy; 2026 ListingPaw AI. Built for Etsy sellers, by Etsy sellers.</p>
         </footer>
@@ -173,7 +169,7 @@
         </div>
     </div>
 
-    <!-- ========== Dashboard (App) ========== -->
+    <!-- ========== Dashboard ========== -->
     <div id="page-dashboard" class="page hidden">
         <nav class="dash-nav">
             <a class="nav-brand" href="#" onclick="showPage('landing');return false;"><i class="fas fa-paw"></i> ListingPaw AI</a>
@@ -186,98 +182,57 @@
         </nav>
 
         <div class="dash-container">
-            <!-- 用量提示 -->
             <div id="usage-warning" class="usage-warning hidden">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>You've used all your free generations this month. <a href="#" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView()">Upgrade to Pro</a> for more.</span>
             </div>
 
             <main>
-                <!-- 模式选择 -->
+                <!-- 4 Tabs -->
                 <section class="mode-selector">
-                    <button id="mode-csv" class="mode-btn active">
-                        <i class="fas fa-file-csv"></i> CSV Bulk
-                    </button>
-                    <button id="mode-manual" class="mode-btn">
-                        <i class="fas fa-keyboard"></i> Manual Input
-                    </button>
-                    <button id="mode-image" class="mode-btn">
+                    <button id="mode-image" class="mode-btn active">
                         <i class="fas fa-image"></i> Image Upload
                     </button>
                     <button id="mode-smart" class="mode-btn">
                         <i class="fas fa-bolt"></i> Smart Generate
                     </button>
+                    <button id="mode-csv" class="mode-btn">
+                        <i class="fas fa-file-csv"></i> CSV Bulk
+                    </button>
                     <button id="mode-history" class="mode-btn">
                         <i class="fas fa-clock-rotate-left"></i> History
                     </button>
-                    <button id="mode-prompts" class="mode-btn">
-                        <i class="fas fa-sliders"></i> Prompt Settings
-                    </button>
                 </section>
 
-                <!-- CSV 上传区域 -->
-                <section id="csv-section" class="content-section">
-                    <div class="upload-area" id="drop-zone">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click or drag to upload CSV file</p>
-                        <small>Template: <a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
+                <!-- Image Upload -->
+                <section id="image-section" class="content-section">
+                    <div class="img-upload-zone" id="img-drop-zone">
+                        <i class="fas fa-camera"></i>
+                        <p>Click or drag to upload product photos</p>
+                        <small>Supports JPG, PNG, WEBP (max 5MB per image, up to 4 images)</small>
                     </div>
-                    <input type="file" id="csv-input" accept=".csv" style="display:none;">
-                    <div id="csv-preview" class="preview-area hidden">
-                        <h3><i class="fas fa-list"></i> Products Found</h3>
-                        <div id="product-list"></div>
-                        <span id="file-name"></span>
+                    <input type="file" id="img-input" accept="image/*" multiple style="display:none;">
+                    <div id="img-preview-area" class="img-preview-area hidden">
+                        <div id="img-preview-grid" class="img-preview-grid"></div>
+                        <button class="btn-add-more" id="btn-add-more-img"><i class="fas fa-plus"></i> Add More</button>
                     </div>
-                </section>
-
-                <!-- 手动输入 -->
-                <section id="manual-section" class="content-section hidden">
-                    <form id="manual-form">
+                    <div id="img-extra-fields" class="img-extra-fields hidden">
                         <div class="form-group">
-                            <label>Product Name *</label>
-                            <input type="text" id="manual-name" placeholder="e.g. Handmade Red Cord Buddhist Lucky Knot Bracelet" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Keywords / Description</label>
-                            <input type="text" id="manual-keywords" placeholder="e.g. bohemian jewelry, gift for her">
+                            <label>Product Name (optional, AI will detect from image)</label>
+                            <input type="text" id="img-product-name" placeholder="Leave blank for AI auto-detect">
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Material</label>
-                                <input type="text" id="manual-material" placeholder="e.g. leather, silver">
-                            </div>
-                            <div class="form-group">
-                                <label>Size</label>
-                                <input type="text" id="manual-size" placeholder="e.g. adjustable">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Color</label>
-                                <input type="text" id="manual-color" placeholder="e.g. red, gold">
+                                <input type="text" id="img-material" placeholder="e.g. silver, gold">
                             </div>
                             <div class="form-group">
                                 <label>Occasion</label>
-                                <input type="text" id="manual-occasion" placeholder="e.g. birthday, christmas">
+                                <input type="text" id="img-occasion" placeholder="e.g. birthday, wedding">
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Reference Image (optional)</label>
-                            <div class="img-upload-area" id="img-upload-area">
-                                <div class="img-upload-placeholder" id="img-placeholder">
-                                    <i class="fas fa-image"></i>
-                                    <span>Click or drag to upload a product photo</span>
-                                    <small>AI will analyze the image to enhance copy generation</small>
-                                </div>
-                                <div class="img-preview-wrap hidden" id="img-preview-wrap">
-                                    <img id="img-preview" src="" alt="Preview">
-                                    <button class="img-remove-btn" onclick="removeRefImage(event)"><i class="fas fa-xmark"></i></button>
-                                </div>
-                                <input type="file" id="ref-image-input" accept="image/*" hidden>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy</button>
-                    </form>
+                        <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy from Images</button>
+                    </div>
                 </section>
 
                 <!-- Smart Generate -->
@@ -316,8 +271,6 @@
                         </div>
                         <button type="button" class="btn-primary" id="btn-smart-generate"><i class="fas fa-bolt"></i> Search & Generate</button>
                     </form>
-
-                    <!-- Smart Progress -->
                     <div id="smart-progress" class="smart-progress hidden">
                         <div class="smart-step" id="step-search">
                             <div class="smart-step-icon"><i class="fas fa-magnifying-glass"></i></div>
@@ -341,12 +294,10 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Competitor Report -->
                     <div id="smart-report" class="smart-report hidden">
-                        <div class="smart-report-header">
+                        <div class="smart-report-header" id="toggle-report">
                             <h3><i class="fas fa-chart-pie"></i> Competitor Analysis Report</h3>
-                            <button class="smart-toggle-report" id="toggle-report"><i class="fas fa-chevron-up"></i></button>
+                            <button class="smart-toggle-report"><i class="fas fa-chevron-up"></i></button>
                         </div>
                         <div id="smart-report-body" class="smart-report-body">
                             <pre id="smart-report-content"></pre>
@@ -354,44 +305,28 @@
                     </div>
                 </section>
 
-                <!-- 历史记录 -->
+                <!-- CSV Bulk -->
+                <section id="csv-section" class="content-section hidden">
+                    <div class="upload-area" id="drop-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag to upload CSV file</p>
+                        <small>Template: <a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
+                    </div>
+                    <input type="file" id="csv-input" accept=".csv" style="display:none;">
+                    <div id="csv-preview" class="preview-area hidden">
+                        <h3><i class="fas fa-list"></i> Products Found</h3>
+                        <div id="product-list"></div>
+                        <span id="file-name"></span>
+                    </div>
+                </section>
+
+                <!-- History -->
                 <section id="history-section" class="content-section hidden">
                     <div id="history-list"></div>
                     <p id="history-empty" class="empty-state">No history yet. Generate your first listing copy!</p>
                 </section>
 
-                <!-- Prompt Settings (Chat Style) -->
-                <section id="prompts-section" class="content-section hidden">
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chat-messages">
-                            <div class="chat-msg chat-ai">
-                                <div class="chat-avatar"><i class="fas fa-paw"></i></div>
-                                <div class="chat-bubble">
-                                    <p>Hi! I'm your prompt assistant. You can customize how I generate each section of your listing copy.</p>
-                                    <p>Choose a section below to customize, or type your instructions directly.</p>
-                                    <div class="chat-quick-actions">
-                                        <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
-                                        <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
-                                        <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
-                                        <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="chat-input-bar">
-                            <div class="chat-section-indicator hidden" id="chat-section-indicator">
-                                <span id="chat-editing-label">Editing: Title</span>
-                                <button onclick="clearPromptSection()"><i class="fas fa-xmark"></i></button>
-                            </div>
-                            <div class="chat-input-row">
-                                <textarea id="chat-input" class="chat-input" rows="1" placeholder="Type your prompt instructions here..."></textarea>
-                                <button class="chat-send-btn" id="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- CSV 批量生成按钮 -->
+                <!-- CSV Generate Button -->
                 <section id="generate-section" class="generate-section hidden">
                     <p>Ready to generate for <strong id="product-count">0</strong> products</p>
                     <button id="generate-all" class="btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Generate All</button>
@@ -404,7 +339,7 @@
                     <p class="loading-sub">This may take 15-30 seconds</p>
                 </div>
 
-                <!-- 结果展示 -->
+                <!-- Results -->
                 <section id="result-section" class="hidden">
                     <div id="result-content"></div>
                     <button id="back-btn"><i class="fas fa-arrow-left"></i> Generate Another</button>
