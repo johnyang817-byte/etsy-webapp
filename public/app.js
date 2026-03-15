@@ -352,23 +352,105 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
     if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
     if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
-    showLoading(true);
+
+    const productInfo = {
+      product_name: document.getElementById('img-product-name').value.trim(),
+      material: document.getElementById('img-material').value.trim(),
+      occasion: document.getElementById('img-occasion').value.trim()
+    };
+
+    // Show progress
+    const progress = document.getElementById('img-progress');
+    const identified = document.getElementById('img-identified');
+    const report = document.getElementById('img-report');
+    progress.classList.remove('hidden');
+    identified.classList.add('hidden');
+    report.classList.add('hidden');
+    el.resultSection.classList.add('hidden');
+
+    setImgStep('identify', 'active', 'Analyzing image...');
+    setImgStep('search', '', 'waiting');
+    setImgStep('analyze', '', 'waiting');
+    setImgStep('generate', '', 'waiting');
+
     try {
-      const product = {
-        product_name: document.getElementById('img-product-name').value.trim() || 'Product from image',
-        material: document.getElementById('img-material').value.trim(),
-        occasion: document.getElementById('img-occasion').value.trim(), keywords: ''
-      };
+      // Animate steps
+      setTimeout(() => {
+        setImgStep('identify', 'done', 'Product identified');
+        setImgStep('search', 'active', 'Searching...');
+      }, 3000);
+      setTimeout(() => {
+        setImgStep('search', 'done', 'Found competitors');
+        setImgStep('analyze', 'active', 'Analyzing...');
+      }, 6000);
+      setTimeout(() => {
+        setImgStep('analyze', 'done', 'Analysis complete');
+        setImgStep('generate', 'active', 'Generating...');
+      }, 9000);
+
       const customPrompts = getCustomPrompts();
-      const body = { product, imageBase64: uploadedImages[0].dataUrl };
+      const body = { imageBase64: uploadedImages[0].dataUrl, productInfo };
       if (customPrompts) body.customPrompts = customPrompts;
-      const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+      const res = await fetch('/api/image-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
-      addUsage(); saveHistory({ product_name: product.product_name, text: data.text }); refreshDashboard();
-      showResults([{ product, text: data.text }]);
-    } catch (err) { alert('Generation failed: ' + err.message); }
-    finally { showLoading(false); }
+
+      // All steps done
+      setImgStep('identify', 'done', 'Product identified');
+      setImgStep('search', 'done', `Found ${data.competitorCount} competitors`);
+      setImgStep('analyze', 'done', 'Analysis complete');
+      setImgStep('generate', 'done', 'Listing generated!');
+
+      // Show identified product
+      if (data.identified) {
+        const id = data.identified;
+        document.getElementById('img-identified-content').innerHTML =
+          `<div class="identified-grid">
+            ${id.product_name ? `<div><strong>Product:</strong> ${escapeHtml(id.product_name)}</div>` : ''}
+            ${id.category ? `<div><strong>Category:</strong> ${escapeHtml(id.category)}</div>` : ''}
+            ${id.material ? `<div><strong>Material:</strong> ${escapeHtml(id.material)}</div>` : ''}
+            ${id.color ? `<div><strong>Color:</strong> ${escapeHtml(id.color)}</div>` : ''}
+            ${id.style ? `<div><strong>Style:</strong> ${escapeHtml(id.style)}</div>` : ''}
+            ${id.keywords ? `<div><strong>Keywords:</strong> ${escapeHtml(id.keywords)}</div>` : ''}
+          </div>`;
+        identified.classList.remove('hidden');
+      }
+
+      // Show competitor report
+      if (data.competitorReport) {
+        document.getElementById('img-report-content').textContent = data.competitorReport;
+        report.classList.remove('hidden');
+      }
+
+      const productName = data.identified?.product_name || productInfo.product_name || 'Product from image';
+      addUsage();
+      saveHistory({ product_name: productName, text: data.listing });
+      refreshDashboard();
+      showResults([{ product: { product_name: productName }, text: data.listing }]);
+
+    } catch (err) {
+      setImgStep('generate', '', 'Failed: ' + err.message);
+      alert('Generation failed: ' + err.message);
+    }
+  });
+
+  function setImgStep(step, state, statusText) {
+    const e = document.getElementById('img-step-' + step);
+    const s = document.getElementById('img-step-' + step + '-status');
+    if (e) e.className = 'smart-step' + (state ? ' ' + state : '');
+    if (s && statusText !== undefined) s.textContent = statusText;
+  }
+
+  document.getElementById('img-toggle-report')?.addEventListener('click', () => {
+    const body = document.getElementById('img-report-body');
+    const icon = document.querySelector('#img-toggle-report .smart-toggle-report i');
+    body.classList.toggle('hidden');
+    if (icon) { icon.classList.toggle('fa-chevron-up'); icon.classList.toggle('fa-chevron-down'); }
   });
 
   // ========== 结果展示 ==========

@@ -206,6 +206,13 @@
 
                 <!-- Image Upload -->
                 <section id="image-section" class="content-section">
+                    <div class="smart-header">
+                        <div class="smart-header-icon" style="background:#8b5cf6;"><i class="fas fa-camera"></i></div>
+                        <div>
+                            <h3>Image to Listing</h3>
+                            <p>Upload product photos — AI identifies your product, searches competitors, and generates optimized copy.</p>
+                        </div>
+                    </div>
                     <div class="img-upload-zone" id="img-drop-zone">
                         <i class="fas fa-camera"></i>
                         <p>Click or drag to upload product photos</p>
@@ -231,7 +238,56 @@
                                 <input type="text" id="img-occasion" placeholder="e.g. birthday, wedding">
                             </div>
                         </div>
-                        <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Generate Copy from Images</button>
+                        <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Identify & Generate</button>
+                    </div>
+
+                    <!-- Image Progress -->
+                    <div id="img-progress" class="smart-progress hidden">
+                        <div class="smart-step" id="img-step-identify">
+                            <div class="smart-step-icon"><i class="fas fa-eye"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Identifying product from image...</span>
+                                <span class="smart-step-status" id="img-step-identify-status">waiting</span>
+                            </div>
+                        </div>
+                        <div class="smart-step" id="img-step-search">
+                            <div class="smart-step-icon"><i class="fas fa-magnifying-glass"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Searching Etsy competitors...</span>
+                                <span class="smart-step-status" id="img-step-search-status">waiting</span>
+                            </div>
+                        </div>
+                        <div class="smart-step" id="img-step-analyze">
+                            <div class="smart-step-icon"><i class="fas fa-chart-bar"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Analyzing market trends...</span>
+                                <span class="smart-step-status" id="img-step-analyze-status">waiting</span>
+                            </div>
+                        </div>
+                        <div class="smart-step" id="img-step-generate">
+                            <div class="smart-step-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Generating optimized listing...</span>
+                                <span class="smart-step-status" id="img-step-generate-status">waiting</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identified Product Info -->
+                    <div id="img-identified" class="img-identified hidden">
+                        <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Identified</h4>
+                        <div id="img-identified-content"></div>
+                    </div>
+
+                    <!-- Competitor Report -->
+                    <div id="img-report" class="smart-report hidden">
+                        <div class="smart-report-header" id="img-toggle-report">
+                            <h3><i class="fas fa-chart-pie"></i> Competitor Analysis Report</h3>
+                            <button class="smart-toggle-report"><i class="fas fa-chevron-up"></i></button>
+                        </div>
+                        <div id="img-report-body" class="smart-report-body">
+                            <pre id="img-report-content"></pre>
+                        </div>
                     </div>
                 </section>
 
