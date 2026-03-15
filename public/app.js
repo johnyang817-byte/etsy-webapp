@@ -157,8 +157,10 @@ document.addEventListener('DOMContentLoaded', function () {
     modeManual: document.getElementById('mode-manual'),
     modeHistory: document.getElementById('mode-history'),
     modePrompts: document.getElementById('mode-prompts'),
+    modeImage: document.getElementById('mode-image'),
     csvSection: document.getElementById('csv-section'),
     manualSection: document.getElementById('manual-section'),
+    imageSection: document.getElementById('image-section'),
     historySection: document.getElementById('history-section'),
     promptsSection: document.getElementById('prompts-section'),
     generateSection: document.getElementById('generate-section'),
@@ -180,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 模式切换 ==========
   function switchMode(mode) {
-    ['csv', 'manual', 'history', 'prompts'].forEach(m => {
+    ['csv', 'manual', 'image', 'history', 'prompts'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -193,11 +195,12 @@ document.addEventListener('DOMContentLoaded', function () {
       el.generateSection.classList.remove('hidden');
     }
     if (mode === 'history') renderHistory();
-    if (mode === 'prompts') loadPromptSettings();
+    if (mode === 'prompts') initChat();
   }
 
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeManual.addEventListener('click', () => switchMode('manual'));
+  el.modeImage.addEventListener('click', () => switchMode('image'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
   el.modePrompts.addEventListener('click', () => switchMode('prompts'));
 
@@ -694,20 +697,226 @@ document.addEventListener('DOMContentLoaded', function () {
     historyToggleView(index);
   };
 
-  // ========== Prompt Settings ==========
+  // ========== Image Upload ==========
+  let uploadedImages = []; // { file, dataUrl }
+
+  const imgDropZone = document.getElementById('img-drop-zone');
+  const imgInput = document.getElementById('img-input');
+  const imgPreviewArea = document.getElementById('img-preview-area');
+  const imgPreviewGrid = document.getElementById('img-preview-grid');
+  const imgExtraFields = document.getElementById('img-extra-fields');
+
+  imgDropZone.addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+  imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
+  imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
+  imgDropZone.addEventListener('drop', e => {
+    e.preventDefault(); imgDropZone.classList.remove('drag-over');
+    handleImageFiles(e.dataTransfer.files);
+  });
+  imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
+  document.getElementById('btn-add-more-img').addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+
+  function handleImageFiles(files) {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB): ' + file.name); continue; }
+      if (uploadedImages.length >= 4) { alert('Maximum 4 images allowed'); break; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedImages.push({ file, dataUrl: e.target.result });
+        renderImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function renderImagePreviews() {
+    if (uploadedImages.length === 0) {
+      imgPreviewArea.classList.add('hidden');
+      imgExtraFields.classList.add('hidden');
+      imgDropZone.style.display = '';
+      return;
+    }
+    imgDropZone.style.display = 'none';
+    imgPreviewArea.classList.remove('hidden');
+    imgExtraFields.classList.remove('hidden');
+    imgPreviewGrid.innerHTML = uploadedImages.map((img, i) =>
+      `<div class="img-thumb">
+        <img src="${img.dataUrl}" alt="Product ${i+1}">
+        <button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button>
+      </div>`
+    ).join('');
+  }
+
+  window.removeImage = function(index) {
+    uploadedImages.splice(index, 1);
+    renderImagePreviews();
+  };
+
+  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
+    if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
+    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+    showLoading(true);
+    try {
+      const product = {
+        product_name: document.getElementById('img-product-name').value.trim() || 'Product from image',
+        material: document.getElementById('img-material').value.trim(),
+        occasion: document.getElementById('img-occasion').value.trim(),
+        keywords: ''
+      };
+      const imageBase64 = uploadedImages[0].dataUrl;
+      const customPrompts = getCustomPrompts();
+      const body = { product, imageBase64 };
+      if (customPrompts) body.customPrompts = customPrompts;
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+      addUsage();
+      saveHistory({ product_name: product.product_name, text: data.text });
+      refreshDashboard();
+      showResults([{ product, text: data.text }]);
+    } catch (err) {
+      alert('Generation failed: ' + err.message);
+    } finally {
+      showLoading(false);
+    }
+  });
+
+  // ========== Chat-Style Prompt Settings ==========
   const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
-  const PROMPT_HISTORY_MAX = 5;
+  const SECTION_NAMES = { title: '🏷️ Title', description: '📝 Description', tags: '🔖 Tags', attributes: '📋 Attributes' };
+  let currentChatSection = null;
+  let chatInitialized = false;
 
   function getCustomPrompts() {
     const saved = getSavedPrompts();
     const result = {};
     PROMPT_SECTIONS.forEach(key => {
-      if (saved[key]?.mode === 'custom' && saved[key]?.text?.trim()) {
-        result[key] = saved[key].text.trim();
-      }
+      if (saved[key]?.trim()) result[key] = saved[key].trim();
     });
     return Object.keys(result).length > 0 ? result : null;
   }
+
+  function initChat() {
+    if (chatInitialized) return;
+    chatInitialized = true;
+    // Show existing custom prompts as messages
+    const saved = getSavedPrompts();
+    PROMPT_SECTIONS.forEach(key => {
+      if (saved[key]?.trim()) {
+        addChatMsg('user', `${SECTION_NAMES[key]}: ${saved[key]}`);
+        addChatMsg('ai', `Got it! Your custom ${key} prompt is saved and active. ✅`);
+      }
+    });
+  }
+
+  function addChatMsg(role, text, extra) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg chat-' + role;
+    const avatarIcon = role === 'ai' ? 'fa-paw' : 'fa-user';
+    div.innerHTML = `<div class="chat-avatar"><i class="fas ${avatarIcon}"></i></div>
+      <div class="chat-bubble"><p>${escapeHtml(text)}</p>${extra || ''}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  window.selectPromptSection = function(section) {
+    currentChatSection = section;
+    const indicator = document.getElementById('chat-section-indicator');
+    document.getElementById('chat-editing-label').textContent = 'Editing: ' + SECTION_NAMES[section];
+    indicator.classList.remove('hidden');
+    document.getElementById('chat-input').focus();
+    // Highlight active chip
+    document.querySelectorAll('.chat-chip').forEach(c => c.classList.remove('active'));
+    const chips = document.querySelectorAll('.chat-chip');
+    chips.forEach(c => { if (c.textContent.includes(section.charAt(0).toUpperCase() + section.slice(1))) c.classList.add('active'); });
+  };
+
+  window.clearPromptSection = function() {
+    currentChatSection = null;
+    document.getElementById('chat-section-indicator').classList.add('hidden');
+    document.querySelectorAll('.chat-chip').forEach(c => c.classList.remove('active'));
+  };
+
+  // Send chat message
+  document.getElementById('chat-send-btn').addEventListener('click', sendChatMessage);
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+  });
+
+  // Auto-resize textarea
+  document.getElementById('chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!currentChatSection) {
+      // Try to detect section from keywords
+      const lower = text.toLowerCase();
+      if (lower.includes('title')) currentChatSection = 'title';
+      else if (lower.includes('description') || lower.includes('desc')) currentChatSection = 'description';
+      else if (lower.includes('tag')) currentChatSection = 'tags';
+      else if (lower.includes('attribute') || lower.includes('attr')) currentChatSection = 'attributes';
+      else {
+        addChatMsg('user', text);
+        addChatMsg('ai', 'Please select a section first (Title, Description, Tags, or Attributes), then type your custom prompt.',
+          `<div class="chat-quick-actions">
+            <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
+            <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
+            <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
+            <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
+          </div>`);
+        input.value = '';
+        input.style.height = 'auto';
+        return;
+      }
+    }
+
+    addChatMsg('user', text);
+
+    // Save prompt
+    const saved = getSavedPrompts();
+    saved[currentChatSection] = text;
+    localStorage.setItem(getUserKey('prompts'), JSON.stringify(saved));
+
+    // Save to prompt history
+    addPromptHistory(currentChatSection, text);
+
+    addChatMsg('ai', `Your ${SECTION_NAMES[currentChatSection]} prompt has been saved! It will be used for all future generations.`,
+      `<div class="chat-status"><i class="fas fa-check-circle"></i> ${SECTION_NAMES[currentChatSection]} — Custom Active</div>
+       <div class="chat-quick-actions" style="margin-top:10px">
+         <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
+         <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
+         <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
+         <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
+         <button class="chat-chip" onclick="resetAllPrompts()">🔄 Reset All</button>
+       </div>`);
+
+    input.value = '';
+    input.style.height = 'auto';
+    clearPromptSection();
+  }
+
+  window.resetAllPrompts = function() {
+    localStorage.removeItem(getUserKey('prompts'));
+    addChatMsg('ai', 'All prompts have been reset to default! 🔄',
+      `<div class="chat-quick-actions">
+        <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
+        <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
+        <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
+        <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
+      </div>`);
+  };
 
   function getPromptHistory(section) {
     try { return JSON.parse(localStorage.getItem(getUserKey('prompt_history_' + section))) || []; } catch { return []; }
@@ -716,120 +925,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function addPromptHistory(section, text) {
     if (!text || !text.trim()) return;
     const history = getPromptHistory(section);
-    // Don't add duplicate of the most recent
     if (history.length > 0 && history[0].text === text.trim()) return;
     history.unshift({ text: text.trim(), date: new Date().toISOString() });
-    if (history.length > PROMPT_HISTORY_MAX) history.length = PROMPT_HISTORY_MAX;
+    if (history.length > 5) history.length = 5;
     localStorage.setItem(getUserKey('prompt_history_' + section), JSON.stringify(history));
   }
-
-  function loadPromptSettings() {
-    const saved = getSavedPrompts();
-    PROMPT_SECTIONS.forEach(key => {
-      const textarea = document.getElementById('prompt-' + key);
-      const body = document.getElementById('body-' + key);
-      const status = document.getElementById('status-' + key);
-      const isCustom = saved[key]?.mode === 'custom';
-      textarea.value = saved[key]?.text || '';
-      body.classList.toggle('hidden', !isCustom);
-      status.textContent = isCustom ? 'Custom' : 'Default';
-      status.className = 'ps-item-badge' + (isCustom ? ' ps-badge-custom' : '');
-      const segmented = document.querySelector(`.ps-seg[data-target="${key}"]`);
-      segmented.querySelectorAll('.ps-seg-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === (isCustom ? 'custom' : 'default'));
-      });
-    });
-  }
-
-  // Segmented control clicks
-  document.querySelectorAll('.ps-seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const segmented = btn.closest('.ps-seg');
-      const target = segmented.dataset.target;
-      const mode = btn.dataset.mode;
-      const body = document.getElementById('body-' + target);
-      const status = document.getElementById('status-' + target);
-      segmented.querySelectorAll('.ps-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
-      body.classList.toggle('hidden', mode === 'default');
-      status.textContent = mode === 'custom' ? 'Custom' : 'Default';
-      status.className = 'ps-item-badge' + (mode === 'custom' ? ' ps-badge-custom' : '');
-      if (mode === 'custom') document.getElementById('prompt-' + target).focus();
-    });
-  });
-
-  // Save
-  document.getElementById('btn-save-prompts').addEventListener('click', () => {
-    const prompts = {};
-    PROMPT_SECTIONS.forEach(key => {
-      const textarea = document.getElementById('prompt-' + key);
-      const segmented = document.querySelector(`.ps-seg[data-target="${key}"]`);
-      const activeBtn = segmented.querySelector('.ps-seg-btn.active');
-      const mode = activeBtn?.dataset.mode || 'default';
-      prompts[key] = { mode, text: textarea.value };
-      if (mode === 'custom' && textarea.value.trim()) {
-        addPromptHistory(key, textarea.value);
-      }
-    });
-    localStorage.setItem(getUserKey('prompts'), JSON.stringify(prompts));
-    const btn = document.getElementById('btn-save-prompts');
-    const orig = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
-    btn.classList.add('ps-btn-saved');
-    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('ps-btn-saved'); }, 1800);
-  });
-
-  // Reset
-  document.getElementById('btn-reset-prompts').addEventListener('click', () => {
-    if (!confirm('Reset all prompts to default?')) return;
-    localStorage.removeItem(getUserKey('prompts'));
-    loadPromptSettings();
-  });
-
-  // Prompt History Modal
-  window.showPromptHistory = function (section) {
-    const sectionNames = { title: 'Title', description: 'Description', tags: 'Tags', attributes: 'Attributes' };
-    const modal = document.getElementById('prompt-history-modal');
-    const title = document.getElementById('prompt-history-modal-title');
-    const list = document.getElementById('prompt-history-list');
-    title.textContent = sectionNames[section] + ' Prompt History';
-
-    const history = getPromptHistory(section);
-    if (history.length === 0) {
-      list.innerHTML = '<div class="prompt-history-empty">No saved prompts yet.<br>Your custom prompts will appear here after saving.</div>';
-    } else {
-      list.innerHTML = history.map((item, i) => {
-        const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        return `<div class="prompt-history-item" onclick="usePromptHistory('${section}', ${i})">
-          <div class="prompt-history-item-text">${escapeHtml(item.text)}</div>
-          <div class="prompt-history-item-date">${date}</div>
-          <button class="prompt-history-item-use" onclick="event.stopPropagation();usePromptHistory('${section}', ${i})">Use</button>
-        </div>`;
-      }).join('');
-    }
-    modal.classList.remove('hidden');
-  };
-
-  window.closePromptHistory = function () {
-    document.getElementById('prompt-history-modal').classList.add('hidden');
-  };
-
-  window.usePromptHistory = function (section, index) {
-    const history = getPromptHistory(section);
-    if (!history[index]) return;
-    const textarea = document.getElementById('prompt-' + section);
-    textarea.value = history[index].text;
-    // Switch to custom mode
-    const segmented = document.querySelector(`.ps-seg[data-target="${section}"]`);
-    segmented.querySelectorAll('.ps-seg-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === 'custom');
-    });
-    document.getElementById('body-' + section).classList.remove('hidden');
-    const status = document.getElementById('status-' + section);
-    status.textContent = 'Custom';
-    status.className = 'ps-item-badge ps-badge-custom';
-    closePromptHistory();
-    textarea.focus();
-  };
 
   // ========== 工具 ==========
   function showLoading(show) {
@@ -840,6 +940,7 @@ document.addEventListener('DOMContentLoaded', function () {
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
     if (el.modeCsv.classList.contains('active')) switchMode('csv');
+    else if (el.modeImage.classList.contains('active')) switchMode('image');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
     else if (el.modePrompts.classList.contains('active')) switchMode('prompts');
     else switchMode('manual');

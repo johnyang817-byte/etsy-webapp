@@ -201,6 +201,9 @@
                     <button id="mode-manual" class="mode-btn">
                         <i class="fas fa-keyboard"></i> Manual Input
                     </button>
+                    <button id="mode-image" class="mode-btn">
+                        <i class="fas fa-image"></i> Image Upload
+                    </button>
                     <button id="mode-history" class="mode-btn">
                         <i class="fas fa-clock-rotate-left"></i> History
                     </button>
@@ -280,93 +283,33 @@
                     <p id="history-empty" class="empty-state">No history yet. Generate your first listing copy!</p>
                 </section>
 
-                <!-- Prompt Settings -->
+                <!-- Prompt Settings (Chat Style) -->
                 <section id="prompts-section" class="content-section hidden">
-                    <div class="ps-form">
-                        <div class="form-group">
-                            <label>🏷️ Title Prompt</label>
-                            <div class="ps-mode-row">
-                                <div class="ps-seg" data-target="title">
-                                    <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                    <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                </div>
-                                <span class="ps-item-badge" id="status-title">Default</span>
-                            </div>
-                            <div class="ps-expand hidden" id="body-title">
-                                <textarea id="prompt-title" class="ps-textarea" rows="4" placeholder="e.g. Generate 3 SEO-optimized Etsy titles under 140 characters. Include gift keywords."></textarea>
-                                <div class="ps-expand-foot">
-                                    <button class="ps-btn-history" onclick="showPromptHistory('title')"><i class="fas fa-clock-rotate-left"></i> History</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>📝 Description Prompt</label>
-                            <div class="ps-mode-row">
-                                <div class="ps-seg" data-target="description">
-                                    <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                    <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                </div>
-                                <span class="ps-item-badge" id="status-description">Default</span>
-                            </div>
-                            <div class="ps-expand hidden" id="body-description">
-                                <textarea id="prompt-description" class="ps-textarea" rows="6" placeholder="e.g. Write a warm, story-driven product description with promo tags, gifting suggestions, and a CTA."></textarea>
-                                <div class="ps-expand-foot">
-                                    <button class="ps-btn-history" onclick="showPromptHistory('description')"><i class="fas fa-clock-rotate-left"></i> History</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>🔖 Tags Prompt</label>
-                                <div class="ps-mode-row">
-                                    <div class="ps-seg" data-target="tags">
-                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                    </div>
-                                    <span class="ps-item-badge" id="status-tags">Default</span>
-                                </div>
-                                <div class="ps-expand hidden" id="body-tags">
-                                    <textarea id="prompt-tags" class="ps-textarea" rows="4" placeholder="e.g. 13 tags, under 20 chars each, comma-separated."></textarea>
-                                    <div class="ps-expand-foot">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('tags')"><i class="fas fa-clock-rotate-left"></i> History</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>📋 Attributes Prompt</label>
-                                <div class="ps-mode-row">
-                                    <div class="ps-seg" data-target="attributes">
-                                        <button class="ps-seg-btn active" data-mode="default">Default</button>
-                                        <button class="ps-seg-btn" data-mode="custom">Custom</button>
-                                    </div>
-                                    <span class="ps-item-badge" id="status-attributes">Default</span>
-                                </div>
-                                <div class="ps-expand hidden" id="body-attributes">
-                                    <textarea id="prompt-attributes" class="ps-textarea" rows="4" placeholder="e.g. Fill color, material, occasion, recipient."></textarea>
-                                    <div class="ps-expand-foot">
-                                        <button class="ps-btn-history" onclick="showPromptHistory('attributes')"><i class="fas fa-clock-rotate-left"></i> History</button>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="chat-msg chat-ai">
+                                <div class="chat-avatar"><i class="fas fa-paw"></i></div>
+                                <div class="chat-bubble">
+                                    <p>Hi! I'm your prompt assistant. You can customize how I generate each section of your listing copy.</p>
+                                    <p>Choose a section below to customize, or type your instructions directly.</p>
+                                    <div class="chat-quick-actions">
+                                        <button class="chat-chip" onclick="selectPromptSection('title')">🏷️ Title</button>
+                                        <button class="chat-chip" onclick="selectPromptSection('description')">📝 Description</button>
+                                        <button class="chat-chip" onclick="selectPromptSection('tags')">🔖 Tags</button>
+                                        <button class="chat-chip" onclick="selectPromptSection('attributes')">📋 Attributes</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="ps-actions">
-                            <button class="ps-btn-reset" id="btn-reset-prompts"><i class="fas fa-arrow-rotate-left"></i> Reset All</button>
-                            <button class="btn-primary ps-btn-save" id="btn-save-prompts"><i class="fas fa-check"></i> Save Settings</button>
-                        </div>
-                    </div>
-
-                    <!-- Prompt History Modal -->
-                    <div id="prompt-history-modal" class="ps-modal hidden">
-                        <div class="ps-modal-bg" onclick="closePromptHistory()"></div>
-                        <div class="ps-modal-box">
-                            <div class="ps-modal-top">
-                                <h3 id="prompt-history-modal-title">Prompt History</h3>
-                                <button class="ps-modal-x" onclick="closePromptHistory()"><i class="fas fa-xmark"></i></button>
+                        <div class="chat-input-bar">
+                            <div class="chat-section-indicator hidden" id="chat-section-indicator">
+                                <span id="chat-editing-label">Editing: Title</span>
+                                <button onclick="clearPromptSection()"><i class="fas fa-xmark"></i></button>
                             </div>
-                            <div id="prompt-history-list" class="ps-modal-list"></div>
+                            <div class="chat-input-row">
+                                <textarea id="chat-input" class="chat-input" rows="1" placeholder="Type your prompt instructions here..."></textarea>
+                                <button class="chat-send-btn" id="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+                            </div>
                         </div>
                     </div>
                 </section>
