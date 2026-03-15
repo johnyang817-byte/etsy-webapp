@@ -64,7 +64,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function getCustomPrompts() {
     const saved = getSavedPrompts();
     const result = {};
-    ['title', 'description', 'tags', 'attributes'].forEach(k => { if (saved[k]?.trim()) result[k] = saved[k].trim(); });
+    ['title', 'description', 'tags', 'attributes'].forEach(k => {
+      const v = saved[k];
+      const text = typeof v === 'string' ? v : (v?.text || '');
+      if (text.trim()) result[k] = text.trim();
+    });
     return Object.keys(result).length > 0 ? result : null;
   }
 
