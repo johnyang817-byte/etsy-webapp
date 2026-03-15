@@ -155,9 +155,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const el = {
     modeCsv: document.getElementById('mode-csv'),
     modeManual: document.getElementById('mode-manual'),
-    modeSmart: document.getElementById('mode-smart'),
-    modePrompts: document.getElementById('mode-prompts'),
     modeImage: document.getElementById('mode-image'),
+    modeSmart: document.getElementById('mode-smart'),
+    modeHistory: document.getElementById('mode-history'),
+    modePrompts: document.getElementById('mode-prompts'),
     csvSection: document.getElementById('csv-section'),
     manualSection: document.getElementById('manual-section'),
     imageSection: document.getElementById('image-section'),
