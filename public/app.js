@@ -700,8 +700,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // ========== Smart Generate ==========
-  document.getElementById('smart-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  document.getElementById('btn-smart-generate').addEventListener('click', async () => {
     if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
 
     const keyword = document.getElementById('smart-keyword').value.trim();

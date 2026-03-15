@@ -289,7 +289,7 @@
                             <p>Enter a keyword — AI searches competitors, analyzes trends, and generates optimized copy.</p>
                         </div>
                     </div>
-                    <form id="smart-form">
+                    <form id="smart-form" onsubmit="return false;">
                         <div class="form-group">
                             <label>Search Keyword *</label>
                             <input type="text" id="smart-keyword" placeholder="e.g. Woven Lucky Bracelet, Name Necklace Gold" required>
@@ -314,7 +314,7 @@
                                 <input type="text" id="smart-occasion" placeholder="e.g. birthday, wedding">
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary"><i class="fas fa-bolt"></i> Search & Generate</button>
+                        <button type="button" class="btn-primary" id="btn-smart-generate"><i class="fas fa-bolt"></i> Search & Generate</button>
                     </form>
 
                     <!-- Smart Progress -->
