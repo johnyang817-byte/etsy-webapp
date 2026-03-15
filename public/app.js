@@ -87,6 +87,17 @@ document.addEventListener('DOMContentLoaded', function () {
     try { return JSON.parse(localStorage.getItem(getUserKey('prompts'))) || {}; } catch { return {}; }
   }
 
+  const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
+
+  function getCustomPrompts() {
+    const saved = getSavedPrompts();
+    const result = {};
+    PROMPT_SECTIONS.forEach(key => {
+      if (saved[key]?.trim()) result[key] = saved[key].trim();
+    });
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
   // ========== 注册 ==========
   document.getElementById('signup-form').addEventListener('submit', e => {
     e.preventDefault();
@@ -883,19 +894,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ========== Chat-Style Prompt Settings ==========
-  const PROMPT_SECTIONS = ['title', 'description', 'tags', 'attributes'];
   const SECTION_NAMES = { title: '🏷️ Title', description: '📝 Description', tags: '🔖 Tags', attributes: '📋 Attributes' };
   let currentChatSection = null;
   let chatInitialized = false;
-
-  function getCustomPrompts() {
-    const saved = getSavedPrompts();
-    const result = {};
-    PROMPT_SECTIONS.forEach(key => {
-      if (saved[key]?.trim()) result[key] = saved[key].trim();
-    });
-    return Object.keys(result).length > 0 ? result : null;
-  }
 
   function initChat() {
     if (chatInitialized) return;
