@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modeImage: document.getElementById('mode-image'),
     modeSmart: document.getElementById('mode-smart'),
     modeWhitebg: document.getElementById('mode-whitebg'),
+    modeCsv: document.getElementById('mode-csv'),
     modeHistory: document.getElementById('mode-history'),
     imageSection: document.getElementById('image-section'),
     smartSection: document.getElementById('smart-section'),
