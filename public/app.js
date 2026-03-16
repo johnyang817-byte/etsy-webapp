@@ -346,8 +346,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function handleImageFiles(files) {
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
-      if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB): ' + file.name); continue; }
-      if (uploadedImages.length >= 4) { alert('Maximum 4 images'); break; }
+      if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB): ' + file.name); continue; }
+      if (uploadedImages.length >= 5) { alert('Maximum 5 images'); break; }
       const reader = new FileReader();
       reader.onload = e => { uploadedImages.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
       reader.readAsDataURL(file);
