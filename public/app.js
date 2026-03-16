@@ -646,10 +646,13 @@ document.addEventListener('DOMContentLoaded', function () {
       historyViewOpen.add(index);
       const history = getHistory(); const item = history[index]; if (!item) return;
       const s = parseSections(item.text); let content = '';
-      if (s.title) content += `<div class="history-detail-block"><strong>🏷️ Titles</strong><div>${formatText(s.title)}</div></div>`;
-      if (s.description) content += `<div class="history-detail-block"><strong>📝 Description</strong><div>${formatText(s.description)}</div></div>`;
-      if (s.tags) { const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean); content += `<div class="history-detail-block"><strong>🔖 Tags</strong><div class="tags-display">${tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div></div>`; }
-      if (s.attributes) content += `<div class="history-detail-block"><strong>📋 Attributes</strong><div>${formatText(s.attributes)}</div></div>`;
+      if (s.title) content += `<div class="result-block"><div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy Titles</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.title)}</div></div>`;
+      if (s.description) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📝</span><span class="block-label">Description</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.description)}</div></div>`;
+      if (s.tags) {
+        const tagLine = s.tags.replace(/\n/g, ' ').trim();
+        content += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
+      }
+      if (s.attributes) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
       body.innerHTML = content; body.classList.remove('hidden');
       const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
       if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
