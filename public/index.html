@@ -209,18 +209,18 @@
 
                 <!-- Image Upload -->
                 <section id="image-section" class="content-section">
-                    <div class="img-hero" id="img-drop-zone">
+                    <div class="img-hero" id="img-drop-zone" onclick="document.getElementById('img-input').value='';document.getElementById('img-input').click();">
                         <div class="img-hero-icon">
                             <i class="fas fa-camera"></i>
                         </div>
                         <h3>Image to Copy</h3>
                         <p>Upload product photos — AI identifies your product, searches competitors, and generates optimized listing copy.</p>
-                        <button class="img-hero-btn" id="img-upload-btn">
+                        <button class="img-hero-btn" id="img-upload-btn" onclick="event.stopPropagation();document.getElementById('img-input').value='';document.getElementById('img-input').click();">
                             <i class="fas fa-plus"></i> Choose Image
                         </button>
                         <span class="img-hero-hint">or drag & drop here · JPG, PNG, WEBP · max 10MB</span>
                     </div>
-                    <input type="file" id="img-input" accept="image/*" multiple style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
+                    <input type="file" id="img-input" accept="image/*" multiple onchange="if(this.files.length)handleImageFiles(this.files)" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
                     <div id="img-preview-area" class="img-preview-area hidden">
                         <div id="img-preview-grid" class="img-preview-grid"></div>
                         <button class="btn-add-more" id="btn-add-more-img"><i class="fas fa-plus"></i> Add More</button>
@@ -416,18 +416,18 @@
 
                 <!-- White Background Generator -->
                 <section id="whitebg-section" class="content-section hidden">
-                    <div class="img-hero" id="whitebg-drop-zone">
+                    <div class="img-hero" id="whitebg-drop-zone" onclick="document.getElementById('whitebg-input').value='';document.getElementById('whitebg-input').click();">
                         <div class="img-hero-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                             <i class="fas fa-wand-sparkles"></i>
                         </div>
                         <h3>Image to White BG</h3>
                         <p>Upload a product photo — AI generates 4 professional images: front view, 45° angle, detail close-up, and model lifestyle shot.</p>
-                        <button class="img-hero-btn" id="whitebg-upload-btn" style="background:#f59e0b;">
+                        <button class="img-hero-btn" id="whitebg-upload-btn" style="background:#f59e0b;" onclick="event.stopPropagation();document.getElementById('whitebg-input').value='';document.getElementById('whitebg-input').click();">
                             <i class="fas fa-plus"></i> Choose Product Photo
                         </button>
                         <span class="img-hero-hint">JPG, PNG, WEBP · max 10MB</span>
                     </div>
-                    <input type="file" id="whitebg-input" accept="image/*" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
+                    <input type="file" id="whitebg-input" accept="image/*" onchange="window._handleWhitebgFile(this)" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
                     <div id="whitebg-preview" class="whitebg-preview hidden">
                         <div class="whitebg-original">
                             <h4>Original Photo</h4>
@@ -463,12 +463,12 @@
 
                 <!-- CSV Bulk -->
                 <section id="csv-section" class="content-section hidden">
-                    <div class="upload-area" id="drop-zone">
+                    <div class="upload-area" id="drop-zone" onclick="document.getElementById('csv-input').value='';document.getElementById('csv-input').click();">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <p>Click or drag to upload CSV file</p>
                         <small>Template: <a href="etsy_products_template.csv" download>etsy_products_template.csv</a></small>
                     </div>
-                    <input type="file" id="csv-input" accept=".csv" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
+                    <input type="file" id="csv-input" accept=".csv" onchange="if(this.files.length&&window._handleCsvFile)window._handleCsvFile(this.files[0])" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
                     <div id="csv-preview" class="preview-area hidden">
                         <h3><i class="fas fa-list"></i> Products Found</h3>
                         <div id="product-list"></div>

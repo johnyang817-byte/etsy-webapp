@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let csvProductSelected = [];
 
   async function handleCsvFile(file) {
+    window._handleCsvFile = handleCsvFile; // expose for inline onchange
     if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file'); return; }
     el.fileName.textContent = file.name;
     try {
@@ -342,25 +343,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Image Upload ==========
   let uploadedImages = [];
-  const imgDropZone = document.getElementById('img-drop-zone');
-  const imgInput = document.getElementById('img-input');
   const imgPreviewArea = document.getElementById('img-preview-area');
   const imgPreviewGrid = document.getElementById('img-preview-grid');
   const imgExtraFields = document.getElementById('img-extra-fields');
 
-  function triggerImgUpload() { imgInput.value = ''; imgInput.click(); }
-
-  // Click anywhere on hero zone or button
-  imgDropZone.addEventListener('click', triggerImgUpload);
-  const imgUploadBtn = document.getElementById('img-upload-btn');
-  if (imgUploadBtn) imgUploadBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerImgUpload(); });
-  imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
-  imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
-  imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
-  imgDropZone.addEventListener('drop', e => { e.preventDefault(); imgDropZone.classList.remove('drag-over'); handleImageFiles(e.dataTransfer.files); });
+  // Use inline onclick in HTML instead - more reliable across browsers
   document.getElementById('btn-add-more-img').addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
 
   function handleImageFiles(files) {
+    window._handleImgFiles = handleImageFiles; // expose for inline onchange
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
       if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB): ' + file.name); continue; }
@@ -761,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Reset white bg state
     if (el.modeWhitebg.classList.contains('active')) {
       whitebgImage = null;
-      whitebgDropZone.style.display = '';
+      document.getElementById('whitebg-drop-zone').style.display = '';
       document.getElementById('whitebg-preview').classList.add('hidden');
       document.getElementById('whitebg-loading').classList.add('hidden');
       document.getElementById('whitebg-results').classList.add('hidden');
@@ -774,6 +765,123 @@ document.addEventListener('DOMContentLoaded', function () {
     else switchMode('image');
     if (csvProducts.length > 0) { el.csvPreview.classList.remove('hidden'); el.generateSection.classList.remove('hidden'); }
   });
+
+  // ========== 全局上传函数（用于 HTML inline onclick） ==========
+  window.handleImageFiles = handleImageFiles;
+
+  window._handleWhitebgFile = function(inp) {
+    var file = inp.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Ratio selector
+  document.querySelectorAll('.ratio-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var plan = getPlan();
+      var isPro = plan === 'pro' || plan === 'unlimited';
+      if (btn.classList.contains('pro-only') && !isPro) { alert('This ratio is available for Pro plans.'); return; }
+      document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      whitebgRatio = btn.dataset.ratio;
+    });
+  });
+
+  // Generate Another whitebg
+  var reuploadWhitebg = document.getElementById('btn-reupload-whitebg');
+  if (reuploadWhitebg) reuploadWhitebg.addEventListener('click', function() {
+    whitebgImage = null;
+    document.getElementById('whitebg-drop-zone').style.display = '';
+    document.getElementById('whitebg-preview').classList.add('hidden');
+    document.getElementById('whitebg-results').classList.add('hidden');
+  });
+
+  // Generate whitebg
+  document.getElementById('btn-generate-whitebg').addEventListener('click', async function() {
+    if (!whitebgImage) { alert('Please upload an image first'); return; }
+    if (!canGenerate()) { alert('Monthly limit reached.'); return; }
+    var plan = getPlan();
+    var loading = document.getElementById('whitebg-loading');
+    var results = document.getElementById('whitebg-results');
+    loading.classList.remove('hidden'); results.classList.add('hidden');
+    try {
+      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: whitebgImage, plan: plan, ratio: whitebgRatio }) });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+      addUsage(); refreshDashboard();
+      var isPro = plan === 'pro' || plan === 'unlimited';
+      var grid = document.getElementById('whitebg-results-grid');
+      grid.innerHTML = data.images.map(function(img, i) {
+        var wm = isPro ? '' : 'whitebg-watermark';
+        var dl = isPro ? '<a href="' + img.url + '" download="product_' + img.label.replace(/\s/g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> HD Download</a>' : '<span class="whitebg-dl-btn disabled"><i class="fas fa-lock"></i> PRO for HD</span>';
+        return '<div class="whitebg-result-card"><div class="' + wm + '"><img src="' + img.url + '" alt="' + img.label + '"></div><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions">' + dl + '</div></div>';
+      }).join('');
+      results.classList.remove('hidden');
+    } catch (err) { alert('White BG failed: ' + err.message); }
+    finally { loading.classList.add('hidden'); }
+  });
+  window.clickImgInput = function() {
+    var inp = document.getElementById('img-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  window.onImgInputChange = function(inp) {
+    if (inp.files.length) handleImageFiles(inp.files);
+  };
+
+  window.clickWhitebgInput = function() {
+    var inp = document.getElementById('whitebg-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  window.onWhitebgInputChange = function(inp) {
+    var file = inp.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.clickCsvInput = function() {
+    var inp = document.getElementById('csv-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  // ========== 全局上传函数 ==========
+  window.clickImgInput = function() { var i = document.getElementById('img-input'); i.value = ''; i.click(); };
+  window.onImgInputChange = function(i) { if (i.files.length) handleImageFiles(i.files); };
+  window.clickWhitebgInput = function() { var i = document.getElementById('whitebg-input'); i.value = ''; i.click(); };
+  window.onWhitebgInputChange = function(i) {
+    var f = i.files[0]; if (!f || !f.type.startsWith('image/')) return;
+    if (f.size > 10*1024*1024) { alert('Image too large (max 10MB)'); return; }
+    var r = new FileReader(); r.onload = function(e) {
+      whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    }; r.readAsDataURL(f);
+  };
+  window.clickCsvInput = function() { var i = document.getElementById('csv-input'); i.value = ''; i.click(); };
 
   // ========== 初始化 ==========
   updateLandingNav();
