@@ -244,7 +244,7 @@ ${customPrompts?.attributes || 'Fill relevant Etsy listing attributes.'}`;
     }
 }
 
-async function callAI(apiKey, model, systemMsg, userMsg) {
+async function callAI(apiKey, model, systemMsg, userMsg, maxTokens) {
     const r = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },

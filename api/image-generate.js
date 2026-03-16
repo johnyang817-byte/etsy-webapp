@@ -136,7 +136,7 @@ ${analysisRes}
 
 Based on the product analysis and competitor intelligence, generate a DIFFERENTIATED listing that outperforms competitors.
 
-Output in these 4 sections with 【】 markers:
+IMPORTANT: You MUST output ALL 4 sections below. Do NOT skip any section.
 
 【标题】
 ${defaultTitle}
@@ -148,11 +148,14 @@ ${defaultDesc}
 ${defaultTags}
 
 【属性】
-${defaultAttrs}`;
+${defaultAttrs}
+
+Remember: ALL 4 sections (标题, 描述, 标签, 属性) are REQUIRED. Do not stop early.`;
 
         const listing = await callAI(apiKey, model,
-            'Expert Etsy SEO copywriter. Use image analysis and competitor intelligence to create differentiated listings.',
-            genPrompt
+            'Expert Etsy SEO copywriter. You MUST output all 4 sections: 标题, 描述, 标签, 属性. Never skip any section.',
+            genPrompt,
+            8000
         );
 
         return res.status(200).json({
@@ -169,14 +172,14 @@ ${defaultAttrs}`;
     }
 }
 
-async function callAI(apiKey, model, systemMsg, userMsg) {
+async function callAI(apiKey, model, systemMsg, userMsg, maxTokens) {
     const res = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model,
             input: { messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }] },
-            parameters: { result_format: 'message', max_tokens: 4000 }
+            parameters: { result_format: 'message', max_tokens: maxTokens || 8000 }
         })
     });
     const data = await res.json();
