@@ -144,6 +144,9 @@ document.addEventListener('DOMContentLoaded', function () {
   let csvProducts = [];
 
   // ========== 模式切换 ==========
+  let lastActiveMode = null;
+  let lastResultVisible = false;
+
   function switchMode(mode) {
     ['image', 'smart', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
@@ -152,7 +155,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (sec) sec.classList.toggle('hidden', m !== mode);
     });
     el.generateSection.classList.add('hidden');
-    el.resultSection.classList.add('hidden');
+
+    // Only hide results if switching to a DIFFERENT mode
+    if (lastActiveMode && lastActiveMode !== mode) {
+      el.resultSection.classList.add('hidden');
+    }
+    // Restore results if coming back to the same mode that had results
+    if (mode === lastActiveMode && lastResultVisible) {
+      el.resultSection.classList.remove('hidden');
+    }
+
+    lastActiveMode = mode;
+
     if (mode === 'csv' && csvProducts.length > 0) {
       el.csvPreview.classList.remove('hidden');
       el.generateSection.classList.remove('hidden');
@@ -356,7 +370,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderImagePreviews() {
     if (uploadedImages.length === 0) {
-      imgPreviewArea.classList.add('hidden'); imgExtraFields.classList.add('hidden'); imgDropZone.style.display = ''; return;
+      imgPreviewArea.classList.add('hidden');
+      document.getElementById('img-identify-section').classList.add('hidden');
+      document.getElementById('img-review-section').classList.add('hidden');
+      imgDropZone.style.display = ''; return;
     }
     imgDropZone.style.display = 'none';
     imgPreviewArea.classList.remove('hidden'); imgExtraFields.classList.remove('hidden');
@@ -377,95 +394,124 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
+  // ========== Step 1: Identify Product ==========
+  document.getElementById('btn-identify-product').addEventListener('click', async () => {
     if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
+
+    const idProgress = document.getElementById('img-identify-progress');
+    const idStep = document.getElementById('img-id-step');
+    const idStatus = document.getElementById('img-id-step-status');
+    document.getElementById('img-identify-section').classList.add('hidden');
+    idProgress.classList.remove('hidden');
+    idStep.className = 'smart-step active';
+    idStatus.textContent = 'Analyzing image...';
+
+    try {
+      const res = await fetch('/api/image-identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: uploadedImages[0].dataUrl })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Identification failed');
+
+      idStep.className = 'smart-step done';
+      idStatus.textContent = 'Product identified!';
+
+      // Fill form with AI results
+      const id = data.identified || {};
+      document.getElementById('img-product-name').value = id.product_name || '';
+      document.getElementById('img-category').value = id.category || '';
+      document.getElementById('img-material').value = id.material || '';
+      document.getElementById('img-style').value = id.color || id.style || '';
+      document.getElementById('img-keywords').value = id.keywords || '';
+
+      // Show review section
+      document.getElementById('img-review-section').classList.remove('hidden');
+      document.getElementById('img-review-section').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      idStep.className = 'smart-step';
+      idStatus.textContent = 'Failed: ' + err.message;
+      alert('Identification failed: ' + err.message);
+      document.getElementById('img-identify-section').classList.remove('hidden');
+    }
+  });
+
+  // ========== Step 2: Generate from reviewed info ==========
+  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
     if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
 
     const productInfo = {
       product_name: document.getElementById('img-product-name').value.trim(),
+      category: document.getElementById('img-category').value.trim(),
       material: document.getElementById('img-material').value.trim(),
-      style: document.getElementById('img-style').value,
+      style: document.getElementById('img-style').value.trim(),
       adjustable: document.getElementById('img-adjustable').value,
-      customizable: document.getElementById('img-customizable').value
+      customizable: document.getElementById('img-customizable').value,
+      keywords: document.getElementById('img-keywords').value.trim(),
+      notes: document.getElementById('img-notes').value.trim()
     };
 
-    // Show progress
+    if (!productInfo.product_name) { alert('Please enter a product name'); return; }
+
+    // Hide review, show generation progress
+    document.getElementById('img-review-section').classList.add('hidden');
     const progress = document.getElementById('img-progress');
-    const identified = document.getElementById('img-identified');
     const report = document.getElementById('img-report');
     progress.classList.remove('hidden');
-    identified.classList.add('hidden');
     report.classList.add('hidden');
     el.resultSection.classList.add('hidden');
 
-    setImgStep('identify', 'active', 'Analyzing image...');
-    setImgStep('search', '', 'waiting');
+    setImgStep('search', 'active', 'Searching...');
     setImgStep('analyze', '', 'waiting');
     setImgStep('generate', '', 'waiting');
 
     try {
-      // Animate steps
-      setTimeout(() => {
-        setImgStep('identify', 'done', 'Product identified');
-        setImgStep('search', 'active', 'Searching...');
-      }, 3000);
-      setTimeout(() => {
-        setImgStep('search', 'done', 'Found competitors');
-        setImgStep('analyze', 'active', 'Analyzing...');
-      }, 6000);
-      setTimeout(() => {
-        setImgStep('analyze', 'done', 'Analysis complete');
-        setImgStep('generate', 'active', 'Generating...');
-      }, 9000);
+      setTimeout(() => { setImgStep('search', 'done', 'Search complete'); setImgStep('analyze', 'active', 'Analyzing...'); }, 3000);
+      setTimeout(() => { setImgStep('analyze', 'done', 'Analysis complete'); setImgStep('generate', 'active', 'Generating...'); }, 6000);
 
       const customPrompts = getCustomPrompts();
-      const body = { imageBase64: uploadedImages[0].dataUrl, productInfo };
-      if (customPrompts) body.customPrompts = customPrompts;
-
-      const res = await fetch('/api/image-generate', {
+      const body = { productInfo, customPrompts };
+      const res = await fetch('/api/smart-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          keyword: productInfo.keywords?.split(',')[0]?.trim() || productInfo.product_name,
+          productInfo: {
+            product_name: productInfo.product_name,
+            material: productInfo.material,
+            color: productInfo.style,
+            occasion: '',
+            category: productInfo.category,
+            adjustable: productInfo.adjustable,
+            customizable: productInfo.customizable,
+            notes: productInfo.notes
+          },
+          customPrompts
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
 
-      // All steps done
-      setImgStep('identify', 'done', 'Product identified');
-      setImgStep('search', 'done', `Found ${data.competitorCount} competitors`);
+      setImgStep('search', 'done', `${data.competitorCount || 0} Etsy results`);
       setImgStep('analyze', 'done', 'Analysis complete');
       setImgStep('generate', 'done', 'Listing generated!');
 
-      // Show identified product
-      if (data.identified) {
-        const id = data.identified;
-        document.getElementById('img-identified-content').innerHTML =
-          `<div class="identified-grid">
-            ${id.product_name ? `<div><strong>Product:</strong> ${escapeHtml(id.product_name)}</div>` : ''}
-            ${id.category ? `<div><strong>Category:</strong> ${escapeHtml(id.category)}</div>` : ''}
-            ${id.material ? `<div><strong>Material:</strong> ${escapeHtml(id.material)}</div>` : ''}
-            ${id.color ? `<div><strong>Color:</strong> ${escapeHtml(id.color)}</div>` : ''}
-            ${id.style ? `<div><strong>Style:</strong> ${escapeHtml(id.style)}</div>` : ''}
-            ${id.keywords ? `<div><strong>Keywords:</strong> ${escapeHtml(id.keywords)}</div>` : ''}
-          </div>`;
-        identified.classList.remove('hidden');
-      }
-
-      // Show competitor report
       if (data.competitorReport) {
         document.getElementById('img-report-content').textContent = data.competitorReport;
         report.classList.remove('hidden');
       }
 
-      const productName = data.identified?.product_name || productInfo.product_name || 'Product from image';
       addUsage();
-      saveHistory({ product_name: productName, text: data.listing });
+      saveHistory({ product_name: productInfo.product_name, text: data.listing });
       refreshDashboard();
-      showResults([{ product: { product_name: productName }, text: data.listing }]);
+      showResults([{ product: { product_name: productInfo.product_name }, text: data.listing }]);
 
     } catch (err) {
       setImgStep('generate', '', 'Failed: ' + err.message);
       alert('Generation failed: ' + err.message);
+      document.getElementById('img-review-section').classList.remove('hidden');
     }
   });
 
@@ -490,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function showResults(results) {
     lastResults = results.filter(r => !r.error);
     resultExportSelected = lastResults.map(() => true);
+    lastResultVisible = true;
     el.resultContent.innerHTML =
       `<div class="result-toolbar">
         <button class="btn-toggle-all" onclick="toggleAllProducts(true)"><i class="fas fa-chevron-down"></i> Expand All</button>
@@ -690,14 +737,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
+    lastResultVisible = false;
     // Reset image upload state
     if (el.modeImage.classList.contains('active')) {
       uploadedImages = [];
       imgDropZone.style.display = '';
       imgPreviewArea.classList.add('hidden');
-      imgExtraFields.classList.add('hidden');
+      document.getElementById('img-identify-section').classList.add('hidden');
+      document.getElementById('img-identify-progress').classList.add('hidden');
+      document.getElementById('img-review-section').classList.add('hidden');
       document.getElementById('img-progress').classList.add('hidden');
-      document.getElementById('img-identified').classList.add('hidden');
       document.getElementById('img-report').classList.add('hidden');
     }
     // Reset smart generate state
