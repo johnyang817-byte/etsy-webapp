@@ -342,8 +342,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ========== Image Upload ==========
-  // uploadedImages managed by global-handlers.js
-  // let uploadedImages = [];
+  // window._uploadedImages managed by global-handlers.js
+  // // managed by global-handlers.js
+  window._uploadedImages = [];
   const imgPreviewArea = document.getElementById('img-preview-area');
   const imgPreviewGrid = document.getElementById('img-preview-grid');
   const imgExtraFields = document.getElementById('img-extra-fields');
@@ -356,9 +357,9 @@ document.addEventListener('DOMContentLoaded', function () {
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
       if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB): ' + file.name); continue; }
-      if (uploadedImages.length >= 5) { alert('Maximum 5 images'); break; }
+      if (window._uploadedImages.length >= 5) { alert('Maximum 5 images'); break; }
       const reader = new FileReader();
-      reader.onload = e => { uploadedImages.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
+      reader.onload = e => { window._uploadedImages.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
       reader.readAsDataURL(file);
     }
   }
@@ -372,12 +373,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     imgDropZone.style.display = 'none';
     imgPreviewArea.classList.remove('hidden'); imgExtraFields.classList.remove('hidden');
-    imgPreviewGrid.innerHTML = uploadedImages.map((img, i) =>
+    imgPreviewGrid.innerHTML = window._uploadedImages.map((img, i) =>
       `<div class="img-thumb"><img src="${img.dataUrl}" alt="Product ${i+1}"><button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button></div>`
     ).join('');
   }
 
-  window.removeImage = function(i) { uploadedImages.splice(i, 1); renderImagePreviews(); };
+  window.removeImage = function(i) { window._uploadedImages.splice(i, 1); renderImagePreviews(); };
 
   // Toggle buttons (Yes/No)
   document.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -752,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // Reset white bg state
     if (el.modeWhitebg.classList.contains('active')) {
-      whitebgImage = null;
+      window._whitebgImage = null;
       document.getElementById('whitebg-drop-zone').style.display = '';
       document.getElementById('whitebg-preview').classList.add('hidden');
       document.getElementById('whitebg-loading').classList.add('hidden');
@@ -776,8 +777,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
     var reader = new FileReader();
     reader.onload = function(e) {
-      whitebgImage = e.target.result;
-      document.getElementById('whitebg-original-img').src = whitebgImage;
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
       document.getElementById('whitebg-drop-zone').style.display = 'none';
       document.getElementById('whitebg-preview').classList.remove('hidden');
       document.getElementById('whitebg-results').classList.add('hidden');
@@ -800,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Generate Another whitebg
   var reuploadWhitebg = document.getElementById('btn-reupload-whitebg');
   if (reuploadWhitebg) reuploadWhitebg.addEventListener('click', function() {
-    whitebgImage = null;
+    window._whitebgImage = null;
     document.getElementById('whitebg-drop-zone').style.display = '';
     document.getElementById('whitebg-preview').classList.add('hidden');
     document.getElementById('whitebg-results').classList.add('hidden');
@@ -808,14 +809,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Generate whitebg
   document.getElementById('btn-generate-whitebg').addEventListener('click', async function() {
-    if (!whitebgImage) { alert('Please upload an image first'); return; }
+    if (!window._whitebgImage) { alert('Please upload an image first'); return; }
     if (!canGenerate()) { alert('Monthly limit reached.'); return; }
     var plan = getPlan();
     var loading = document.getElementById('whitebg-loading');
     var results = document.getElementById('whitebg-results');
     loading.classList.remove('hidden'); results.classList.add('hidden');
     try {
-      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
+      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
       addUsage(); refreshDashboard();
@@ -852,8 +853,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
     var reader = new FileReader();
     reader.onload = function(e) {
-      whitebgImage = e.target.result;
-      document.getElementById('whitebg-original-img').src = whitebgImage;
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
       document.getElementById('whitebg-drop-zone').style.display = 'none';
       document.getElementById('whitebg-preview').classList.remove('hidden');
       document.getElementById('whitebg-results').classList.add('hidden');
@@ -875,8 +876,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var f = i.files[0]; if (!f || !f.type.startsWith('image/')) return;
     if (f.size > 10*1024*1024) { alert('Image too large (max 10MB)'); return; }
     var r = new FileReader(); r.onload = function(e) {
-      whitebgImage = e.target.result;
-      document.getElementById('whitebg-original-img').src = whitebgImage;
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
       document.getElementById('whitebg-drop-zone').style.display = 'none';
       document.getElementById('whitebg-preview').classList.remove('hidden');
       document.getElementById('whitebg-results').classList.add('hidden');
