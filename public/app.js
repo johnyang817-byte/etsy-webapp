@@ -342,7 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ========== Image Upload ==========
-  let uploadedImages = [];
+  // uploadedImages managed by global-handlers.js
+  // let uploadedImages = [];
   const imgPreviewArea = document.getElementById('img-preview-area');
   const imgPreviewGrid = document.getElementById('img-preview-grid');
   const imgExtraFields = document.getElementById('img-extra-fields');
@@ -363,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderImagePreviews() {
-    if (uploadedImages.length === 0) {
+    if ((window._uploadedImages||[]).length === 0) {
       imgPreviewArea.classList.add('hidden');
       document.getElementById('img-identify-section').classList.add('hidden');
       document.getElementById('img-review-section').classList.add('hidden');
@@ -390,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Step 1: Identify Product ==========
   document.getElementById('btn-identify-product').addEventListener('click', async () => {
-    if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
+    if (window._(window._uploadedImages||[]).length === 0) { alert('Please upload at least one image'); return; }
 
     const idProgress = document.getElementById('img-identify-progress');
     const idStep = document.getElementById('img-id-step');
@@ -404,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const res = await fetch('/api/image-identify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: uploadedImages[0].dataUrl })
+        body: JSON.stringify({ imageBase64: window._uploadedImages[0].dataUrl })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Identification failed');
@@ -734,7 +735,7 @@ document.addEventListener('DOMContentLoaded', function () {
     lastResultVisible = false;
     // Reset image upload state
     if (el.modeImage.classList.contains('active')) {
-      uploadedImages = [];
+      window._uploadedImages = [];
       imgDropZone.style.display = '';
       imgPreviewArea.classList.add('hidden');
       document.getElementById('img-identify-section').classList.add('hidden');
@@ -792,7 +793,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btn.classList.contains('pro-only') && !isPro) { alert('This ratio is available for Pro plans.'); return; }
       document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      whitebgRatio = btn.dataset.ratio;
+      window._whitebgRatio = btn.dataset.ratio;
     });
   });
 
@@ -814,7 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var results = document.getElementById('whitebg-results');
     loading.classList.remove('hidden'); results.classList.add('hidden');
     try {
-      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: whitebgImage, plan: plan, ratio: whitebgRatio }) });
+      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
       addUsage(); refreshDashboard();
