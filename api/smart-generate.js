@@ -27,16 +27,19 @@ export default async function handler(req, res) {
         let competitors = [];
         if (serperKey) {
             try {
-                const r = await fetch('https://google.serper.dev/search', {
-                    method: 'POST', headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q: `${kw} site:etsy.com`, num: 20, gl: 'us', hl: 'en' })
-                });
-                const d = await r.json();
-                if (d.organic) {
-                    competitors = d.organic.filter(i => i.link?.includes('etsy.com')).map(i => ({
-                        title: i.title, snippet: i.snippet, url: i.link, price: extractPrice(i.snippet || i.title || '')
-                    }));
+                const pages = [0, 20, 40, 60, 80];
+                const allResults = [];
+                for (const start of pages) {
+                    const r = await fetch('https://google.serper.dev/search', {
+                        method: 'POST', headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ q: `${kw} site:etsy.com best seller`, num: 20, start, gl: 'us', hl: 'en' })
+                    });
+                    const d = await r.json();
+                    if (d.organic) allResults.push(...d.organic);
                 }
+                competitors = allResults.filter(i => i.link?.includes('etsy.com')).map(i => ({
+                    title: i.title, snippet: i.snippet, url: i.link, price: extractPrice(i.snippet || i.title || '')
+                }));
                 dataSources.etsy_search = { count: competitors.length, status: 'ok' };
             } catch (e) { dataSources.etsy_search = { count: 0, status: 'error: ' + e.message }; }
         }

@@ -687,6 +687,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
+    // Reset image upload state
+    if (el.modeImage.classList.contains('active')) {
+      uploadedImages = [];
+      imgDropZone.style.display = '';
+      imgPreviewArea.classList.add('hidden');
+      imgExtraFields.classList.add('hidden');
+      document.getElementById('img-progress').classList.add('hidden');
+      document.getElementById('img-identified').classList.add('hidden');
+      document.getElementById('img-report').classList.add('hidden');
+    }
+    // Reset smart generate state
+    if (el.modeSmart.classList.contains('active')) {
+      document.getElementById('smart-progress').classList.add('hidden');
+      document.getElementById('smart-sources').classList.add('hidden');
+      document.getElementById('smart-report').classList.add('hidden');
+    }
     if (el.modeImage.classList.contains('active')) switchMode('image');
     else if (el.modeSmart.classList.contains('active')) switchMode('smart');
     else if (el.modeCsv.classList.contains('active')) switchMode('csv');
