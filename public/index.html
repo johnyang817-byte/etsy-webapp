@@ -418,7 +418,7 @@
                             <i class="fas fa-wand-sparkles"></i>
                         </div>
                         <h3>Product White Background</h3>
-                        <p>Upload a product photo — AI removes background, enhances quality, and generates a professional e-commerce white background image.</p>
+                        <p>Upload a product photo — AI generates 4 professional images: front view, 45° angle, detail close-up, and model lifestyle shot.</p>
                         <button class="img-hero-btn" id="whitebg-upload-btn" style="background:#f59e0b;">
                             <i class="fas fa-plus"></i> Choose Product Photo
                         </button>
@@ -427,19 +427,34 @@
                     <input type="file" id="whitebg-input" accept="image/*" style="display:none;">
                     <div id="whitebg-preview" class="whitebg-preview hidden">
                         <div class="whitebg-original">
-                            <h4>Original</h4>
+                            <h4>Original Photo</h4>
                             <img id="whitebg-original-img" src="" alt="Original">
                         </div>
-                        <button class="btn-primary" id="btn-generate-whitebg"><i class="fas fa-wand-sparkles"></i> Generate White Background</button>
+                        <div class="whitebg-options">
+                            <div class="form-group">
+                                <label>Aspect Ratio</label>
+                                <div class="ratio-selector">
+                                    <button class="ratio-btn active" data-ratio="1:1">1:1</button>
+                                    <button class="ratio-btn pro-only" data-ratio="4:3">4:3 <span class="pro-tag">PRO</span></button>
+                                    <button class="ratio-btn pro-only" data-ratio="16:9">16:9 <span class="pro-tag">PRO</span></button>
+                                    <button class="ratio-btn pro-only" data-ratio="9:16">9:16 <span class="pro-tag">PRO</span></button>
+                                </div>
+                            </div>
+                            <div class="whitebg-plan-info">
+                                <div class="plan-free-info"><i class="fas fa-info-circle"></i> Free: 512px, watermarked · <strong>Pro: HD 1024px+, no watermark</strong></div>
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="btn-generate-whitebg" style="background:linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-wand-sparkles"></i> Generate 4 Product Photos</button>
                     </div>
                     <div id="whitebg-loading" class="whitebg-loading hidden">
                         <div class="spinner"></div>
-                        <p>AI is generating your professional product photo...</p>
-                        <p class="loading-sub">This may take 30-60 seconds</p>
+                        <p>AI is generating 4 professional product photos...</p>
+                        <p class="loading-sub">This may take 1-2 minutes (4 images in parallel)</p>
                     </div>
                     <div id="whitebg-results" class="whitebg-results hidden">
-                        <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> White Background Images Generated</h4>
+                        <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Photos Generated</h4>
                         <div id="whitebg-results-grid" class="whitebg-results-grid"></div>
+                        <button class="btn-reupload-whitebg" id="btn-reupload-whitebg"><i class="fas fa-camera"></i> Generate Another</button>
                     </div>
                 </section>
 
