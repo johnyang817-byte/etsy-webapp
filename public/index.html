@@ -230,11 +230,37 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Material</label>
-                                <input type="text" id="img-material" placeholder="e.g. silver, gold">
+                                <input type="text" id="img-material" placeholder="e.g. stainless steel, 925 silver">
                             </div>
                             <div class="form-group">
-                                <label>Occasion</label>
-                                <input type="text" id="img-occasion" placeholder="e.g. birthday, wedding">
+                                <label>Style / Color</label>
+                                <select id="img-style">
+                                    <option value="">Select style</option>
+                                    <option value="Gold">Gold</option>
+                                    <option value="Rose Gold">Rose Gold</option>
+                                    <option value="Silver">Silver</option>
+                                    <option value="Gold & Silver">Gold & Silver</option>
+                                    <option value="Black">Black</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Adjustable</label>
+                                <div class="toggle-row">
+                                    <button type="button" class="toggle-btn active" data-field="img-adjustable" data-value="no">No</button>
+                                    <button type="button" class="toggle-btn" data-field="img-adjustable" data-value="yes">Yes</button>
+                                </div>
+                                <input type="hidden" id="img-adjustable" value="no">
+                            </div>
+                            <div class="form-group">
+                                <label>Customizable</label>
+                                <div class="toggle-row">
+                                    <button type="button" class="toggle-btn active" data-field="img-customizable" data-value="no">No</button>
+                                    <button type="button" class="toggle-btn" data-field="img-customizable" data-value="yes">Yes</button>
+                                </div>
+                                <input type="hidden" id="img-customizable" value="no">
                             </div>
                         </div>
                         <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Identify & Generate</button>

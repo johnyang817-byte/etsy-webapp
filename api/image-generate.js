@@ -72,9 +72,10 @@ Return ONLY the JSON object, no other text.` }
             product_name: productInfo?.product_name?.trim() || identified.product_name || 'Product',
             material: productInfo?.material?.trim() || identified.material || '',
             color: identified.color || '',
-            style: identified.style || '',
+            style: productInfo?.style || identified.style || '',
             category: identified.category || '',
-            occasion: productInfo?.occasion?.trim() || '',
+            adjustable: productInfo?.adjustable || 'no',
+            customizable: productInfo?.customizable || 'no',
             keywords: identified.keywords || '',
             target_audience: identified.target_audience || ''
         };
@@ -116,10 +117,10 @@ Return ONLY the JSON object, no other text.` }
 - Name: ${finalProduct.product_name}
 - Category: ${finalProduct.category}
 - Material: ${finalProduct.material || 'See photos'}
-- Color: ${finalProduct.color || 'See photos'}
-- Style: ${finalProduct.style}
-- Target: ${finalProduct.target_audience}
-- Occasion: ${finalProduct.occasion}`;
+- Style/Color: ${finalProduct.style || 'See photos'}
+- Adjustable: ${finalProduct.adjustable === 'yes' ? 'Yes' : 'No'}
+- Customizable: ${finalProduct.customizable === 'yes' ? 'Yes (customers can personalize with name/text)' : 'No'}
+- Target: ${finalProduct.target_audience}`;
 
         const defaultTitle = customPrompts?.title || 'Generate 3 Etsy titles (each under 140 chars), SEO-optimized, include gift keywords, natural American English.';
         const defaultDesc = customPrompts?.description || 'Write a rich, emotionally engaging Etsy product description with promo tags, story, gifting suggestions, customer reviews, and CTA. Use emojis.';

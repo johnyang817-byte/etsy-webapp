@@ -367,6 +367,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   window.removeImage = function(i) { uploadedImages.splice(i, 1); renderImagePreviews(); };
 
+  // Toggle buttons (Yes/No)
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const field = btn.dataset.field;
+      const value = btn.dataset.value;
+      document.getElementById(field).value = value;
+      btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
   document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
     if (uploadedImages.length === 0) { alert('Please upload at least one image'); return; }
     if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
@@ -374,7 +384,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const productInfo = {
       product_name: document.getElementById('img-product-name').value.trim(),
       material: document.getElementById('img-material').value.trim(),
-      occasion: document.getElementById('img-occasion').value.trim()
+      style: document.getElementById('img-style').value,
+      adjustable: document.getElementById('img-adjustable').value,
+      customizable: document.getElementById('img-customizable').value
     };
 
     // Show progress
