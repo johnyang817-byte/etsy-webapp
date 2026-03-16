@@ -222,27 +222,45 @@
                         <div id="img-preview-grid" class="img-preview-grid"></div>
                         <button class="btn-add-more" id="btn-add-more-img"><i class="fas fa-plus"></i> Add More</button>
                     </div>
-                    <div id="img-extra-fields" class="img-extra-fields hidden">
+
+                    <!-- Step 1: Identify button -->
+                    <div id="img-identify-section" class="hidden">
+                        <button class="btn-primary" id="btn-identify-product" style="margin-top:16px;"><i class="fas fa-eye"></i> Identify Product</button>
+                    </div>
+
+                    <!-- Identify Progress -->
+                    <div id="img-identify-progress" class="smart-progress hidden">
+                        <div class="smart-step active" id="img-id-step">
+                            <div class="smart-step-icon"><i class="fas fa-eye"></i></div>
+                            <div class="smart-step-text">
+                                <span class="smart-step-title">Identifying product from image...</span>
+                                <span class="smart-step-status" id="img-id-step-status">Analyzing...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Review & Edit identified info -->
+                    <div id="img-review-section" class="img-review-section hidden">
+                        <div class="img-review-header">
+                            <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Identified — Review & Edit</h4>
+                            <p>AI detected the following. Edit any field before generating.</p>
+                        </div>
                         <div class="form-group">
-                            <label>Product Name (optional, AI will detect from image)</label>
-                            <input type="text" id="img-product-name" placeholder="Leave blank for AI auto-detect">
+                            <label>Product Name *</label>
+                            <input type="text" id="img-product-name" placeholder="e.g. Red Cord Woven Lucky Knot Bracelet">
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <input type="text" id="img-category" placeholder="e.g. Bracelet, Necklace, Ring">
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Material</label>
-                                <input type="text" id="img-material" placeholder="e.g. stainless steel, 925 silver">
+                                <input type="text" id="img-material" placeholder="e.g. stainless steel, 925 silver, red cord">
                             </div>
                             <div class="form-group">
                                 <label>Style / Color</label>
-                                <select id="img-style">
-                                    <option value="">Select style</option>
-                                    <option value="Gold">Gold</option>
-                                    <option value="Rose Gold">Rose Gold</option>
-                                    <option value="Silver">Silver</option>
-                                    <option value="Gold & Silver">Gold & Silver</option>
-                                    <option value="Black">Black</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <input type="text" id="img-style" placeholder="e.g. Gold, Rose Gold, Silver, Bohemian">
                             </div>
                         </div>
                         <div class="form-row">
@@ -263,29 +281,30 @@
                                 <input type="hidden" id="img-customizable" value="no">
                             </div>
                         </div>
-                        <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Identify & Generate</button>
+                        <div class="form-group">
+                            <label>Keywords (AI detected)</label>
+                            <input type="text" id="img-keywords" placeholder="e.g. lucky bracelet, handmade, gift for her">
+                        </div>
+                        <div class="form-group">
+                            <label>Additional Notes (optional)</label>
+                            <input type="text" id="img-notes" placeholder="Anything else AI should know about this product">
+                        </div>
+                        <button class="btn-primary" id="btn-generate-from-img"><i class="fas fa-wand-magic-sparkles"></i> Search Competitors & Generate Listing</button>
                     </div>
 
-                    <!-- Image Progress -->
+                    <!-- Generation Progress -->
                     <div id="img-progress" class="smart-progress hidden">
-                        <div class="smart-step" id="img-step-identify">
-                            <div class="smart-step-icon"><i class="fas fa-eye"></i></div>
-                            <div class="smart-step-text">
-                                <span class="smart-step-title">Identifying product from image...</span>
-                                <span class="smart-step-status" id="img-step-identify-status">waiting</span>
-                            </div>
-                        </div>
                         <div class="smart-step" id="img-step-search">
                             <div class="smart-step-icon"><i class="fas fa-magnifying-glass"></i></div>
                             <div class="smart-step-text">
-                                <span class="smart-step-title">Searching Etsy competitors...</span>
+                                <span class="smart-step-title">Searching 100+ Etsy competitors...</span>
                                 <span class="smart-step-status" id="img-step-search-status">waiting</span>
                             </div>
                         </div>
                         <div class="smart-step" id="img-step-analyze">
                             <div class="smart-step-icon"><i class="fas fa-chart-bar"></i></div>
                             <div class="smart-step-text">
-                                <span class="smart-step-title">Analyzing market trends...</span>
+                                <span class="smart-step-title">Analyzing market intelligence...</span>
                                 <span class="smart-step-status" id="img-step-analyze-status">waiting</span>
                             </div>
                         </div>
@@ -296,12 +315,6 @@
                                 <span class="smart-step-status" id="img-step-generate-status">waiting</span>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Identified Product Info -->
-                    <div id="img-identified" class="img-identified hidden">
-                        <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Identified</h4>
-                        <div id="img-identified-content"></div>
                     </div>
 
                     <!-- Competitor Report -->
@@ -395,6 +408,38 @@
                         <div id="smart-report-body" class="smart-report-body">
                             <pre id="smart-report-content"></pre>
                         </div>
+                    </div>
+                </section>
+
+                <!-- White Background Generator -->
+                <section id="whitebg-section" class="content-section hidden">
+                    <div class="img-hero" id="whitebg-drop-zone">
+                        <div class="img-hero-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <i class="fas fa-wand-sparkles"></i>
+                        </div>
+                        <h3>Product White Background</h3>
+                        <p>Upload a product photo — AI removes background, enhances quality, and generates a professional e-commerce white background image.</p>
+                        <button class="img-hero-btn" id="whitebg-upload-btn" style="background:#f59e0b;">
+                            <i class="fas fa-plus"></i> Choose Product Photo
+                        </button>
+                        <span class="img-hero-hint">JPG, PNG, WEBP · max 10MB</span>
+                    </div>
+                    <input type="file" id="whitebg-input" accept="image/*" style="display:none;">
+                    <div id="whitebg-preview" class="whitebg-preview hidden">
+                        <div class="whitebg-original">
+                            <h4>Original</h4>
+                            <img id="whitebg-original-img" src="" alt="Original">
+                        </div>
+                        <button class="btn-primary" id="btn-generate-whitebg"><i class="fas fa-wand-sparkles"></i> Generate White Background</button>
+                    </div>
+                    <div id="whitebg-loading" class="whitebg-loading hidden">
+                        <div class="spinner"></div>
+                        <p>AI is generating your professional product photo...</p>
+                        <p class="loading-sub">This may take 30-60 seconds</p>
+                    </div>
+                    <div id="whitebg-results" class="whitebg-results hidden">
+                        <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> White Background Images Generated</h4>
+                        <div id="whitebg-results-grid" class="whitebg-results-grid"></div>
                     </div>
                 </section>
 

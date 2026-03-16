@@ -651,6 +651,92 @@ body {
 
 .loading-sub { color: var(--text-tertiary); font-size: 0.82rem; margin-top: 4px; }
 
+/* ========== White Background ========== */
+.whitebg-preview {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.whitebg-original {
+    margin-bottom: 16px;
+}
+
+.whitebg-original h4 {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.whitebg-original img {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    object-fit: contain;
+    background: var(--bg);
+}
+
+.whitebg-loading {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.whitebg-results {
+    margin-top: 20px;
+}
+
+.whitebg-results h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 14px;
+}
+
+.whitebg-results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.whitebg-result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.whitebg-result-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.whitebg-result-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: white;
+}
+
+.whitebg-result-card .whitebg-card-actions {
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.whitebg-dl-btn {
+    padding: 6px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 980px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.whitebg-dl-btn:hover { background: var(--accent-hover); }
+
 /* ========== Data Sources ========== */
 .smart-sources {
     margin-top: 12px;

@@ -121,10 +121,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const el = {
     modeImage: document.getElementById('mode-image'),
     modeSmart: document.getElementById('mode-smart'),
-    modeCsv: document.getElementById('mode-csv'),
+    modeWhitebg: document.getElementById('mode-whitebg'),
     modeHistory: document.getElementById('mode-history'),
     imageSection: document.getElementById('image-section'),
     smartSection: document.getElementById('smart-section'),
+    whitebgSection: document.getElementById('whitebg-section'),
     csvSection: document.getElementById('csv-section'),
     historySection: document.getElementById('history-section'),
     generateSection: document.getElementById('generate-section'),
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let lastResultVisible = false;
 
   function switchMode(mode) {
-    ['image', 'smart', 'csv', 'history'].forEach(m => {
+    ['image', 'smart', 'whitebg', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -176,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   el.modeImage.addEventListener('click', () => switchMode('image'));
   el.modeSmart.addEventListener('click', () => switchMode('smart'));
+  el.modeWhitebg.addEventListener('click', () => switchMode('whitebg'));
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
 
@@ -345,12 +347,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const imgPreviewGrid = document.getElementById('img-preview-grid');
   const imgExtraFields = document.getElementById('img-extra-fields');
 
-  imgDropZone.addEventListener('click', (e) => {
-    if (e.target.closest('.img-hero-btn')) return; // btn handles itself
-    imgInput.value = ''; imgInput.click();
-  });
+  function triggerImgUpload() { imgInput.value = ''; imgInput.click(); }
+
+  // Click anywhere on hero zone or button
+  imgDropZone.addEventListener('click', triggerImgUpload);
   const imgUploadBtn = document.getElementById('img-upload-btn');
-  if (imgUploadBtn) imgUploadBtn.addEventListener('click', (e) => { e.stopPropagation(); imgInput.value = ''; imgInput.click(); });
+  if (imgUploadBtn) imgUploadBtn.addEventListener('click', (e) => { e.stopPropagation(); triggerImgUpload(); });
   imgInput.addEventListener('change', () => { if (imgInput.files.length) handleImageFiles(imgInput.files); });
   imgDropZone.addEventListener('dragover', e => { e.preventDefault(); imgDropZone.classList.add('drag-over'); });
   imgDropZone.addEventListener('dragleave', () => imgDropZone.classList.remove('drag-over'));
@@ -755,8 +757,17 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('smart-sources').classList.add('hidden');
       document.getElementById('smart-report').classList.add('hidden');
     }
+    // Reset white bg state
+    if (el.modeWhitebg.classList.contains('active')) {
+      whitebgImage = null;
+      whitebgDropZone.style.display = '';
+      document.getElementById('whitebg-preview').classList.add('hidden');
+      document.getElementById('whitebg-loading').classList.add('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    }
     if (el.modeImage.classList.contains('active')) switchMode('image');
     else if (el.modeSmart.classList.contains('active')) switchMode('smart');
+    else if (el.modeWhitebg.classList.contains('active')) switchMode('whitebg');
     else if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
     else switchMode('image');
