@@ -1,4 +1,4 @@
-// api/white-bg.js - 产品白底图生成 API（豆包 Seedream）
+// api/white-bg.js - 产品白底图生成 API（豆包 Seedream 5.0）
 export default async function handler(req, res) {
     const allowedOrigins = ['https://etsy-webapp.vercel.app', 'http://localhost:3000'];
     const origin = req.headers.origin;
@@ -13,54 +13,51 @@ export default async function handler(req, res) {
     if (!imageBase64) return res.status(400).json({ success: false, error: 'Missing image' });
 
     const dashscopeKey = process.env.DASHSCOPE_API_KEY;
-    const doubaoKey = process.env.DOUBAO_API_KEY || 'e7d9ccf8-9bbc-41cb-8e04-430dd88b5d5b';
+    const doubaoKey = process.env.DOUBAO_API_KEY_V2 || 'b3f3eac1-8556-4f20-8ad7-ec42f75b02f1';
     if (!dashscopeKey) return res.status(500).json({ success: false, error: 'Missing API Key' });
 
     try {
-        // Step 1: Vision识别产品（用DashScope qwen-vl-plus）
+        // Step 1: Vision识别产品（严格不猜测）
         const productDesc = await callVision(dashscopeKey, imageBase64,
-            `You are a professional product photographer. Your job is to describe EXACTLY what you see in this image for recreating it.
+            `You are a professional product photographer. Describe ONLY what you clearly see.
 
-CRITICAL RULES:
-- Describe ONLY what is clearly visible. Do NOT guess, invent, or hallucinate any details.
-- If you cannot see something clearly, say "not visible" instead of guessing.
-- Product consistency is the #1 priority. Every detail must match the original.
+CRITICAL: Do NOT guess, invent, or hallucinate. If unclear, say "not visible".
 
-Describe with extreme precision:
-1. EXACT product type (e.g. "braided red cord bracelet with a single gold knot charm")
-2. EXACT colors (use precise color names, e.g. "deep crimson red", not just "red")
-3. EXACT materials visible (e.g. "woven cotton cord", "gold-plated metal")
-4. EXACT shape, proportions, structure
-5. ALL visible details: clasps, closures, beads, charms, engravings, patterns
-6. Surface finish: matte, glossy, brushed, etc.
-7. What is NOT there (e.g. "no gemstones", "no text engraving")
+Describe:
+1. EXACT product type (e.g. "braided red cord bracelet with gold knot charm")
+2. EXACT colors (precise, e.g. "deep crimson red cord, gold-tone metal")
+3. EXACT materials visible
+4. Shape, proportions, structure
+5. ALL visible details: clasps, beads, charms, engravings, patterns
+6. Surface finish
+7. What is NOT there
 
-DO NOT add any features, decorations, or details that are not clearly visible in the image.`);
+DO NOT add features not visible in the image.`);
 
         if (!productDesc) return res.status(500).json({ success: false, error: 'Failed to analyze image' });
 
-        // Step 2: 用豆包Seedream生成4张不同角度的白底图
-        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，提升整体质感和高级感，符合电商主图标准。严格按照以下描述还原产品，不要添加任何原图中没有的元素: ${productDesc}`;
+        // Step 2: 豆包 Seedream 5.0 并行生成4张
+        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，保留产品本身，提升整体质感和高级感，符合电商主图标准，产品一致性强，写实高清。严格按照以下描述还原产品，不要添加任何原图中没有的元素: ${productDesc}`;
 
         const prompts = [
-            `${basePrompt}，正面平视角度，产品居中，不要添加额外装饰，专业棚拍，4K高清，商业摄影质感。`,
-            `${basePrompt}，45度侧面角度，展示产品立体感和层次，不要改变产品任何细节，专业棚拍，4K高清。`,
-            `${basePrompt}，微距特写，展示材质纹理和工艺细节，不要添加原图没有的元素，浅景深效果，4K高清。`,
-            `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景。`
+            `${basePrompt}，正面平视角度，产品居中，不要添加额外装饰，专业棚拍，8K高清，商业摄影质感。`,
+            `${basePrompt}，45度侧面角度，展示产品立体感和层次，不要改变产品任何细节，专业棚拍，8K高清。`,
+            `${basePrompt}，微距特写，展示材质纹理和工艺细节，不要添加原图没有的元素，浅景深效果，8K高清。`,
+            `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景，8K高清。`
         ];
         const labels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle'];
 
-        // 并行生成4张图
         const imagePromises = prompts.map(prompt =>
             fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
                 body: JSON.stringify({
-                    model: 'doubao-seedream-4-0-250828',
+                    model: 'doubao-seedream-5-0-260128',
                     prompt,
                     response_format: 'url',
-                    size: '1024x1024',
-                    stream: false
+                    size: '2K',
+                    stream: false,
+                    watermark: false
                 })
             }).then(r => r.json()).catch(e => ({ error: e.message }))
         );
@@ -68,9 +65,7 @@ DO NOT add any features, decorations, or details that are not clearly visible in
         const results = await Promise.all(imagePromises);
         const allImages = [];
         results.forEach((data, i) => {
-            if (data.data?.[0]?.url) {
-                allImages.push({ url: data.data[0].url, label: labels[i] });
-            }
+            if (data.data?.[0]?.url) allImages.push({ url: data.data[0].url, label: labels[i] });
         });
 
         if (allImages.length === 0) throw new Error('All image generations failed');
@@ -79,7 +74,7 @@ DO NOT add any features, decorations, or details that are not clearly visible in
             success: true,
             images: allImages,
             description: productDesc,
-            resolution: '1024x1024'
+            resolution: '2K'
         });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
