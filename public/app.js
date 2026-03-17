@@ -146,10 +146,15 @@ document.addEventListener('DOMContentLoaded', function () {
   let csvProducts = [];
 
   // ========== 模式切换 ==========
-  let lastActiveMode = null;
-  let lastResultVisible = false;
+  let lastModeResults = {}; // store result HTML per mode
 
   function switchMode(mode) {
+    // Save current result if visible
+    var prevMode = document.querySelector('.mode-btn.active')?.id?.replace('mode-','');
+    if (prevMode && !el.resultSection.classList.contains('hidden')) {
+      lastModeResults[prevMode] = el.resultContent.innerHTML;
+    }
+
     ['image', 'smart', 'whitebg', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
@@ -158,16 +163,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     el.generateSection.classList.add('hidden');
 
-    // Only hide results if switching to a DIFFERENT mode
-    if (lastActiveMode && lastActiveMode !== mode) {
+    // Restore results if this mode had them
+    if (lastModeResults[mode]) {
+      el.resultContent.innerHTML = lastModeResults[mode];
+      el.resultSection.classList.remove('hidden');
+    } else {
       el.resultSection.classList.add('hidden');
     }
-    // Restore results if coming back to the same mode that had results
-    if (mode === lastActiveMode && lastResultVisible) {
-      el.resultSection.classList.remove('hidden');
-    }
-
-    lastActiveMode = mode;
 
     if (mode === 'csv' && csvProducts.length > 0) {
       el.csvPreview.classList.remove('hidden');
@@ -536,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function showResults(results) {
     lastResults = results.filter(r => !r.error);
     resultExportSelected = lastResults.map(() => true);
-    lastResultVisible = true;
+    // results shown
     el.resultContent.innerHTML =
       `<div class="result-toolbar">
         <button class="btn-toggle-all" onclick="toggleAllProducts(true)"><i class="fas fa-chevron-down"></i> Expand All</button>
@@ -737,7 +739,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   el.backBtn.addEventListener('click', () => {
     el.resultSection.classList.add('hidden');
-    lastResultVisible = false;
+    var activeMode = document.querySelector('.mode-btn.active')?.id?.replace('mode-','');
+    if (activeMode) delete lastModeResults[activeMode];
     // Reset image upload state
     if (el.modeImage.classList.contains('active')) {
       window._uploadedImages = [];

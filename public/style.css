@@ -831,11 +831,28 @@ body {
     display: block;
     width: 100%;
     margin-top: 16px;
-    padding: 12px;
-    background: var(--bg);
-    border: 1px solid var(--border-strong);
+    padding: 14px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none;
     border-radius: var(--radius-sm);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+
+.btn-reupload-whitebg:hover { opacity: 0.9; transform: scale(1.01); }
+
+.btn-reset-upload {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: transparent;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
@@ -843,7 +860,41 @@ body {
     text-align: center;
 }
 
-.btn-reupload-whitebg:hover { color: var(--accent); border-color: var(--accent); }
+.btn-reset-upload:hover { color: #ff3b30; border-color: #ff3b30; }
+
+.btn-change-img {
+    display: block;
+    margin: 10px auto 0;
+    padding: 8px 20px;
+    background: transparent;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 980px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-change-img:hover { color: var(--accent); border-color: var(--accent); }
+
+.btn-stop-generate {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: #ff3b30;
+    color: white;
+    border: none;
+    border-radius: 980px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-stop-generate:hover { background: #e0332b; }
 
 /* ========== Data Sources ========== */
 .smart-sources {
