@@ -19,25 +19,34 @@ export default async function handler(req, res) {
     try {
         // Step 1: Vision识别产品（用DashScope qwen-vl-plus）
         const productDesc = await callVision(dashscopeKey, imageBase64,
-            `You are a professional product photographer. Describe this product in EXTREME detail:
-1. Exact product type and name
-2. ALL visible colors (be very precise, e.g. "deep crimson red", "18K gold-tone")
-3. ALL materials and textures
-4. Shape, proportions, structural details
-5. Any text, engravings, patterns, clasps, decorations
-6. Surface finish (matte, glossy, satin, metallic)
-This description will be used to generate professional white background product photos.`);
+            `You are a professional product photographer. Your job is to describe EXACTLY what you see in this image for recreating it.
+
+CRITICAL RULES:
+- Describe ONLY what is clearly visible. Do NOT guess, invent, or hallucinate any details.
+- If you cannot see something clearly, say "not visible" instead of guessing.
+- Product consistency is the #1 priority. Every detail must match the original.
+
+Describe with extreme precision:
+1. EXACT product type (e.g. "braided red cord bracelet with a single gold knot charm")
+2. EXACT colors (use precise color names, e.g. "deep crimson red", not just "red")
+3. EXACT materials visible (e.g. "woven cotton cord", "gold-plated metal")
+4. EXACT shape, proportions, structure
+5. ALL visible details: clasps, closures, beads, charms, engravings, patterns
+6. Surface finish: matte, glossy, brushed, etc.
+7. What is NOT there (e.g. "no gemstones", "no text engraving")
+
+DO NOT add any features, decorations, or details that are not clearly visible in the image.`);
 
         if (!productDesc) return res.status(500).json({ success: false, error: 'Failed to analyze image' });
 
         // Step 2: 用豆包Seedream生成4张不同角度的白底图
-        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，提升整体质感和高级感，符合电商主图标准。Product: ${productDesc}`;
+        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，提升整体质感和高级感，符合电商主图标准。严格按照以下描述还原产品，不要添加任何原图中没有的元素: ${productDesc}`;
 
         const prompts = [
-            `${basePrompt}，正面平视角度，产品居中，专业棚拍，4K高清，商业摄影质感。`,
-            `${basePrompt}，45度侧面角度，展示产品立体感和层次，专业棚拍，4K高清。`,
-            `${basePrompt}，微距特写，展示材质纹理和工艺细节，浅景深效果，4K高清。`,
-            `${basePrompt}，优雅模特佩戴/使用该产品，时尚杂志风格，柔和自然光，高级感，简约背景。`
+            `${basePrompt}，正面平视角度，产品居中，不要添加额外装饰，专业棚拍，4K高清，商业摄影质感。`,
+            `${basePrompt}，45度侧面角度，展示产品立体感和层次，不要改变产品任何细节，专业棚拍，4K高清。`,
+            `${basePrompt}，微距特写，展示材质纹理和工艺细节，不要添加原图没有的元素，浅景深效果，4K高清。`,
+            `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景。`
         ];
         const labels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle'];
 

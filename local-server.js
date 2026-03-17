@@ -265,16 +265,16 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         if (!apiKey || !doubaoKey) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing API Key' })); }
 
         // Step 1: Vision识别
-        const productDesc = await callVision(apiKey, imageBase64, 'Describe this product in extreme detail for recreating a white background product photo. Include: exact type, all colors, materials, textures, shape, decorations, finish.');
+        const productDesc = await callVision(apiKey, imageBase64, 'Describe ONLY what you see in this product image. Do NOT guess or add details not visible. Include: exact product type, exact colors, exact materials, shape, all visible details (clasps, charms, patterns), surface finish. Say "not visible" for anything unclear.');
         if (!productDesc) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Failed to analyze image' })); }
 
         // Step 2: 豆包Seedream并行生成4张
-        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，提升整体质感和高级感，符合电商主图标准。Product: ${productDesc}`;
+        const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，提升整体质感和高级感，符合电商主图标准。严格按照以下描述还原产品，不要添加任何原图中没有的元素: ${productDesc}`;
         const prompts = [
-          `${basePrompt}，正面平视角度，产品居中，专业棚拍，4K高清，商业摄影质感。`,
-          `${basePrompt}，45度侧面角度，展示产品立体感和层次，专业棚拍，4K高清。`,
-          `${basePrompt}，微距特写，展示材质纹理和工艺细节，浅景深效果，4K高清。`,
-          `${basePrompt}，优雅模特佩戴/使用该产品，时尚杂志风格，柔和自然光，高级感，简约背景。`
+          `${basePrompt}，正面平视角度，产品居中，不要添加额外装饰，专业棚拍，4K高清，商业摄影质感。`,
+          `${basePrompt}，45度侧面角度，展示产品立体感和层次，不要改变产品任何细节，专业棚拍，4K高清。`,
+          `${basePrompt}，微距特写，展示材质纹理和工艺细节，不要添加原图没有的元素，浅景深效果，4K高清。`,
+          `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景。`
         ];
         const labels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle'];
 
