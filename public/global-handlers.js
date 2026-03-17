@@ -1,111 +1,16 @@
-// global-handlers.js - 独立的文件上传和处理逻辑，不依赖 app.js 内部变量
-(function() {
-  // ========== 共享状态 ==========
-  window._uploadedImages = [];
-  window._whitebgImage = null;
-  window._whitebgRatio = '1:1';
-
-  // ========== Image to Copy: 文件处理 ==========
-  window._handleImgFiles = function(files) {
-    for (var i = 0; i < files.length; i++) {
-      var file = files[i];
-      if (!file.type.startsWith('image/')) continue;
-      if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB): ' + file.name); continue; }
-      if (window._uploadedImages.length >= 5) { alert('Maximum 5 images'); break; }
-      (function(f) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          window._uploadedImages.push({ file: f, dataUrl: e.target.result });
-          window._renderImgPreviews();
-        };
-        reader.readAsDataURL(f);
-      })(file);
-    }
-  };
-
-  window._renderImgPreviews = function() {
-    var dz = document.getElementById('img-drop-zone');
-    var pa = document.getElementById('img-preview-area');
-    var pg = document.getElementById('img-preview-grid');
-    var ef = document.getElementById('img-extra-fields');
-    var imgs = window._uploadedImages;
-
-    if (!imgs || imgs.length === 0) {
-      if (pa) pa.classList.add('hidden');
-      if (ef) ef.classList.add('hidden');
-      if (dz) dz.style.display = '';
-      return;
-    }
-    if (dz) dz.style.display = 'none';
-    if (pa) pa.classList.remove('hidden');
-    if (ef) ef.classList.remove('hidden');
-    if (pg) {
-      pg.innerHTML = imgs.map(function(img, i) {
-        return '<div class="img-thumb"><img src="' + img.dataUrl + '" alt="Product ' + (i+1) + '"><button class="img-thumb-remove" onclick="window._removeImg(' + i + ')"><i class="fas fa-xmark"></i></button></div>';
-      }).join('');
-    }
-  };
-
-  window._removeImg = function(index) {
-    window._uploadedImages.splice(index, 1);
-    window._renderImgPreviews();
-  };
-
-  // ========== White BG: 文件处理 ==========
-  window._handleWhitebgFile = function(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      window._whitebgImage = e.target.result;
-      var origImg = document.getElementById('whitebg-original-img');
-      if (origImg) origImg.src = e.target.result;
-      var dz = document.getElementById('whitebg-drop-zone');
-      if (dz) dz.style.display = 'none';
-      var preview = document.getElementById('whitebg-preview');
-      if (preview) preview.classList.remove('hidden');
-      var results = document.getElementById('whitebg-results');
-      if (results) results.classList.add('hidden');
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // ========== Image to Copy: 生成 ==========
-  document.addEventListener('DOMContentLoaded', function() {
-    // Ratio selector
-    document.querySelectorAll('.ratio-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        if (btn.classList.contains('pro-only')) {
-          alert('This ratio is available for Pro plans. Please upgrade.');
-          return;
-        }
-        document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        window._whitebgRatio = btn.dataset.ratio;
-      });
-    });
-
-    // Generate Another for whitebg
-    var reuploadBtn = document.getElementById('btn-reupload-whitebg');
-    if (reuploadBtn) {
-      reuploadBtn.addEventListener('click', function() {
-        window._whitebgImage = null;
-        var dz = document.getElementById('whitebg-drop-zone');
-        if (dz) dz.style.display = '';
-        var preview = document.getElementById('whitebg-preview');
-        if (preview) preview.classList.add('hidden');
-        var results = document.getElementById('whitebg-results');
-        if (results) results.classList.add('hidden');
-      });
-    }
-
-    // Add More images
-    var addMoreBtn = document.getElementById('btn-add-more-img');
-    if (addMoreBtn) {
-      addMoreBtn.addEventListener('click', function() {
-        var inp = document.getElementById('img-input');
-        if (inp) { inp.value = ''; inp.click(); }
-      });
-    }
-  });
+(function(){
+window._uploadedImages=window._uploadedImages||[];
+window._whitebgImage=window._whitebgImage||null;
+window._whitebgAbort=null;
+window._handleImgFiles=function(files){for(var i=0;i<files.length;i++){var f=files[i];if(!f.type.startsWith('image/'))continue;if(f.size>10485760){alert('Too large');continue;}if(window._uploadedImages.length>=5){alert('Max 5');break;}(function(ff){var r=new FileReader();r.onload=function(e){window._uploadedImages.push({file:ff,dataUrl:e.target.result});window._renderImgPreviews();};r.readAsDataURL(ff);})(f);}};
+window._renderImgPreviews=function(){var dz=document.getElementById('img-drop-zone'),pa=document.getElementById('img-preview-area'),pg=document.getElementById('img-preview-grid'),ef=document.getElementById('img-extra-fields'),rs=document.getElementById('img-review-section');if(!window._uploadedImages||!window._uploadedImages.length){if(pa)pa.classList.add('hidden');if(ef)ef.classList.add('hidden');if(rs)rs.classList.add('hidden');if(dz)dz.style.display='';return;}if(dz)dz.style.display='none';if(pa)pa.classList.remove('hidden');if(ef)ef.classList.remove('hidden');if(rs)rs.classList.remove('hidden');if(pg){var h='';for(var i=0;i<window._uploadedImages.length;i++){h+='<div class=\"img-thumb\"><img src=\"'+window._uploadedImages[i].dataUrl+'\"><button class=\"img-thumb-remove\" onclick=\"window._removeImg('+i+')\"><i class=\"fas fa-xmark\"></i></button></div>';}pg.innerHTML=h;}};
+window._removeImg=function(i){window._uploadedImages.splice(i,1);window._renderImgPreviews();};
+window._handleWhitebgFile=function(file){if(!file||!file.type.startsWith('image/'))return;if(file.size>10485760){alert('Too large');return;}var r=new FileReader();r.onload=function(e){window._whitebgImage=e.target.result;var img=document.getElementById('whitebg-original-img');if(img)img.src=e.target.result;var dz=document.getElementById('whitebg-drop-zone');if(dz)dz.style.display='none';var p=document.getElementById('whitebg-preview');if(p)p.classList.remove('hidden');var rr=document.getElementById('whitebg-results');if(rr)rr.classList.add('hidden');};r.readAsDataURL(file);};
+document.addEventListener('DOMContentLoaded',function(){
+var b1=document.getElementById('btn-reset-img');if(b1)b1.onclick=function(){window._uploadedImages=[];window._renderImgPreviews();var rs=document.getElementById('result-section');if(rs)rs.classList.add('hidden');};
+var b2=document.getElementById('btn-change-whitebg');if(b2)b2.onclick=function(){window._whitebgImage=null;if(window._whitebgAbort)window._whitebgAbort.abort();var dz=document.getElementById('whitebg-drop-zone');if(dz)dz.style.display='';var p=document.getElementById('whitebg-preview');if(p)p.classList.add('hidden');var r=document.getElementById('whitebg-results');if(r)r.classList.add('hidden');var l=document.getElementById('whitebg-loading');if(l)l.classList.add('hidden');};
+var b3=document.getElementById('btn-stop-whitebg');if(b3)b3.onclick=function(){if(window._whitebgAbort)window._whitebgAbort.abort();var l=document.getElementById('whitebg-loading');if(l)l.classList.add('hidden');var p=document.getElementById('whitebg-preview');if(p)p.classList.remove('hidden');};
+var b4=document.getElementById('btn-reupload-whitebg');if(b4)b4.onclick=function(){window._whitebgImage=null;var dz=document.getElementById('whitebg-drop-zone');if(dz)dz.style.display='';var p=document.getElementById('whitebg-preview');if(p)p.classList.add('hidden');var r=document.getElementById('whitebg-results');if(r)r.classList.add('hidden');};
+var b5=document.getElementById('btn-add-more-img');if(b5)b5.onclick=function(){var inp=document.getElementById('img-input');if(inp){inp.value='';inp.click();}};
+});
 })();

@@ -344,7 +344,7 @@
                     </div>
                     <form id="smart-form" onsubmit="return false;">
                         <div class="form-group">
-                            <label>Search Keyword *</label>
+                            <label>Product Description *</label>
                             <input type="text" id="smart-keyword" placeholder="e.g. Woven Lucky Bracelet, Name Necklace Gold" required>
                         </div>
                         <div class="form-row">
@@ -353,19 +353,23 @@
                                 <input type="text" id="smart-product-name" placeholder="e.g. Handmade Red Cord Bracelet">
                             </div>
                             <div class="form-group">
-                                <label>Material</label>
+                                <label>Material (optional)</label>
                                 <input type="text" id="smart-material" placeholder="e.g. 14K gold, sterling silver">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Color</label>
+                                <label>Color (optional)</label>
                                 <input type="text" id="smart-color" placeholder="e.g. rose gold, red">
                             </div>
                             <div class="form-group">
-                                <label>Occasion</label>
+                                <label>Occasion (optional)</label>
                                 <input type="text" id="smart-occasion" placeholder="e.g. birthday, wedding">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Custom Prompt (optional)</label>
+                            <textarea id="smart-custom-prompt" rows="3" placeholder="Write your own instructions for AI. Leave blank to use default prompts."></textarea>
                         </div>
                         <button type="button" class="btn-primary" id="btn-smart-generate"><i class="fas fa-bolt"></i> Search & Generate</button>
                     </form>

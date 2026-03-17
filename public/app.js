@@ -305,8 +305,9 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(() => { setSmartStep('trends', 'done', 'Trends data loaded'); setSmartStep('analyze', 'active', 'Analyzing...'); }, 4000);
       setTimeout(() => { setSmartStep('analyze', 'done', 'Analysis complete'); setSmartStep('generate', 'active', 'Generating...'); }, 7000);
 
-      const customPrompts = getCustomPrompts();
-      const res = await fetch('/api/smart-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, productInfo, customPrompts }) });
+    const customPrompts = getCustomPrompts();
+    const userCustomPrompt = document.getElementById('smart-custom-prompt')?.value?.trim() || '';
+    const res = await fetch('/api/smart-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, productInfo, customPrompts, userCustomPrompt }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
 

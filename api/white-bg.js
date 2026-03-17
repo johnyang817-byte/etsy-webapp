@@ -15,7 +15,6 @@ export default async function handler(req, res) {
     const doubaoKey = process.env.DOUBAO_API_KEY_V2 || 'b3f3eac1-8556-4f20-8ad7-ec42f75b02f1';
 
     try {
-        // 4 prompts for 4 different angles, all using image-to-image
         const prompts = [
             '产品精修，将产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，保持产品本身完全不变，提升整体质感和高级感，符合电商主图标准，正面平视角度，产品居中，专业棚拍，写实高清，8K',
             '产品精修，将产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，保持产品本身完全不变，提升整体质感和高级感，45度侧面角度展示产品立体感，专业棚拍，写实高清，8K',
@@ -24,21 +23,29 @@ export default async function handler(req, res) {
         ];
         const labels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle'];
 
-        // Parallel image-to-image generation
-        const imagePromises = prompts.map(prompt =>
-            fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
-                body: JSON.stringify({
-                    model: 'doubao-seedream-5-0-260128',
-                    prompt,
-                    image: imageBase64,
-                    size: '2K',
-                    output_format: 'png',
-                    watermark: false
-                })
-            }).then(r => r.json()).catch(e => ({ error: { message: e.message } }))
-        );
+        const imagePromises = prompts.map(async (prompt) => {
+            try {
+                const r = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
+                    body: JSON.stringify({
+                        model: 'doubao-seedream-5-0-260128',
+                        prompt,
+                        image: imageBase64,
+                        size: '2K',
+                        output_format: 'png',
+                        watermark: false
+                    })
+                });
+                if (!r.ok) {
+                    const text = await r.text();
+                    return { error: { message: `HTTP ${r.status}: ${text.slice(0, 100)}` } };
+                }
+                return await r.json();
+            } catch (e) {
+                return { error: { message: e.message } };
+            }
+        });
 
         const results = await Promise.all(imagePromises);
         const allImages = [];

@@ -170,7 +170,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { keyword, productInfo, customPrompts } = JSON.parse(body);
+        const { keyword, productInfo, customPrompts, userCustomPrompt } = JSON.parse(body);
         if (!keyword) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing keyword' })); }
         const apiKey = process.env.DASHSCOPE_API_KEY;
         const serperKey = process.env.SERPER_API_KEY;
@@ -282,7 +282,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
           fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
-            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, response_format: 'url', size: '2K', stream: false, watermark: false })
+            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: '2K', output_format: 'png', watermark: false })
           }).then(r => r.json()).catch(e => ({ error: e.message }))
         );
 

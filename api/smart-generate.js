@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    const { keyword, productInfo, customPrompts } = req.body || {};
+    const { keyword, productInfo, customPrompts, userCustomPrompt } = req.body || {};
     if (!keyword?.trim()) return res.status(400).json({ success: false, error: 'Missing keyword' });
 
     const apiKey = process.env.DASHSCOPE_API_KEY;
@@ -199,6 +199,10 @@ ${Object.entries(dataSources).map(([k, v]) => `- ${k}: ${v.status} (${v.count ||
 
         // ========== Generate Listing ==========
         const pName = productInfo?.product_name || kw;
+        const userPromptSection = userCustomPrompt
+            ? `\n\nUSER CUSTOM INSTRUCTIONS (follow these instead of defaults):\n${userCustomPrompt}`
+            : '';
+
         const genPrompt = `You are an Etsy Growth Hacker and SEO Copywriter.
 
 MULTI-SOURCE INTELLIGENCE:
@@ -223,7 +227,7 @@ ${customPrompts?.description || 'Rich, emotionally engaging description with pro
 ${customPrompts?.tags || '13 Etsy tags, each under 20 chars, comma-separated. Incorporate trending/rising keywords from Google Trends.'}
 
 【属性】
-${customPrompts?.attributes || 'Fill relevant Etsy listing attributes.'}`;
+${customPrompts?.attributes || 'Fill relevant Etsy listing attributes.'}${userPromptSection}`;
 
         const listing = await callAI(apiKey, model,
             'Expert Etsy SEO copywriter. Use multi-source intelligence and trending data to create high-converting listings.',
