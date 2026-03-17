@@ -367,12 +367,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderImagePreviews() {
     if ((window._uploadedImages||[]).length === 0) {
       var pa = document.getElementById('img-preview-area'); if (pa) pa.classList.add('hidden');
+      var rs = document.getElementById('img-review-section'); if (rs) rs.classList.add('hidden');
       var ef = document.getElementById('img-extra-fields'); if (ef) ef.classList.add('hidden');
       var dz = document.getElementById('img-drop-zone'); if (dz) dz.style.display = '';
       return;
     }
     var dz2 = document.getElementById('img-drop-zone'); if (dz2) dz2.style.display = 'none';
     var pa2 = document.getElementById('img-preview-area'); if (pa2) pa2.classList.remove('hidden');
+    var rs2 = document.getElementById('img-review-section'); if (rs2) rs2.classList.remove('hidden');
     var ef2 = document.getElementById('img-extra-fields'); if (ef2) ef2.classList.remove('hidden');
     var pg = document.getElementById('img-preview-grid');
     if (pg) pg.innerHTML = window._uploadedImages.map((img, i) =>
