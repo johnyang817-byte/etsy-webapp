@@ -345,12 +345,12 @@ document.addEventListener('DOMContentLoaded', function () {
   // window._uploadedImages managed by global-handlers.js
   // // managed by global-handlers.js
   window._uploadedImages = [];
-  const imgPreviewArea = document.getElementById('img-preview-area');
-  const imgPreviewGrid = document.getElementById('img-preview-grid');
-  const imgExtraFields = document.getElementById('img-extra-fields');
+  // const document.getElementById('img-preview-area') = document.getElementById('img-preview-area');
+  // const document.getElementById('img-preview-grid') = document.getElementById('img-preview-grid');
+  // const document.getElementById('img-extra-fields') = document.getElementById('img-extra-fields');
 
   // Use inline onclick in HTML instead - more reliable across browsers
-  document.getElementById('btn-add-more-img').addEventListener('click', () => { imgInput.value = ''; imgInput.click(); });
+  document.getElementById('btn-add-more-img').addEventListener('click', () => { document.getElementById('img-input').value = ''; document.getElementById('img-input').click(); });
 
   function handleImageFiles(files) {
     window._handleImgFiles = handleImageFiles; // expose for inline onchange
@@ -366,14 +366,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderImagePreviews() {
     if ((window._uploadedImages||[]).length === 0) {
-      imgPreviewArea.classList.add('hidden');
+      document.getElementById('img-preview-area').classList.add('hidden');
       document.getElementById('img-identify-section').classList.add('hidden');
       document.getElementById('img-review-section').classList.add('hidden');
-      imgDropZone.style.display = ''; return;
+      document.getElementById('img-drop-zone').style.display = ''; return;
     }
-    imgDropZone.style.display = 'none';
-    imgPreviewArea.classList.remove('hidden'); imgExtraFields.classList.remove('hidden');
-    imgPreviewGrid.innerHTML = window._uploadedImages.map((img, i) =>
+    document.getElementById('img-drop-zone').style.display = 'none';
+    document.getElementById('img-preview-area').classList.remove('hidden'); document.getElementById('img-extra-fields').classList.remove('hidden');
+    document.getElementById('img-preview-grid').innerHTML = window._uploadedImages.map((img, i) =>
       `<div class="img-thumb"><img src="${img.dataUrl}" alt="Product ${i+1}"><button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button></div>`
     ).join('');
   }
@@ -737,8 +737,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Reset image upload state
     if (el.modeImage.classList.contains('active')) {
       window._uploadedImages = [];
-      imgDropZone.style.display = '';
-      imgPreviewArea.classList.add('hidden');
+      document.getElementById('img-drop-zone').style.display = '';
+      document.getElementById('img-preview-area').classList.add('hidden');
       document.getElementById('img-identify-section').classList.add('hidden');
       document.getElementById('img-identify-progress').classList.add('hidden');
       document.getElementById('img-review-section').classList.add('hidden');

@@ -114,29 +114,15 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         const apiKey = process.env.DASHSCOPE_API_KEY;
         const serperKey = process.env.SERPER_API_KEY;
         const model = process.env.DASHSCOPE_MODEL || 'qwen-turbo';
-        const visionModel = process.env.DASHSCOPE_VISION_MODEL || 'qwen-vl-plus';
         if (!apiKey) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: false, error: 'Missing AI API Key' }));
         }
 
-        // Step 1: Identify from image
+        // Step 1: Identify from image via vision (OpenAI-compatible)
         let identified = {};
         try {
-          const visionRes = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: visionModel,
-              input: { messages: [{ role: 'user', content: [
-                { image: imageBase64 },
-                { text: 'Analyze this product image. Return JSON: { "product_name": "...", "category": "...", "material": "...", "color": "...", "style": "...", "keywords": "5 comma-separated keywords", "target_audience": "..." }. ONLY JSON.' }
-              ]}]},
-              parameters: { result_format: 'message' }
-            })
-          });
-          const visionData = await visionRes.json();
-          const visionText = visionData.output?.choices?.[0]?.message?.content?.[0]?.text || visionData.output?.choices?.[0]?.message?.content || '';
+          const visionText = await callVision(apiKey, imageBase64, 'Analyze this product. Return JSON: {"product_name":"...","category":"...","material":"...","color":"...","style":"...","keywords":"5 comma-separated","target_audience":"..."}. ONLY JSON.');
           const jsonMatch = visionText.match(/\{[\s\S]*\}/);
           if (jsonMatch) identified = JSON.parse(jsonMatch[0]);
         } catch (e) { identified = { product_name: productInfo?.product_name || 'Product', keywords: 'jewelry, handmade' }; }
@@ -275,23 +261,14 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         const { imageBase64, plan, ratio } = JSON.parse(body);
         if (!imageBase64) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing image' })); }
         const apiKey = process.env.DASHSCOPE_API_KEY;
-        const visionModel = process.env.DASHSCOPE_VISION_MODEL || 'qwen-vl-max';
-        const model = process.env.DASHSCOPE_MODEL || 'qwen-turbo';
         if (!apiKey) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing API Key' })); }
 
         const isPro = plan === 'pro' || plan === 'unlimited';
         const sizeMap = { '1:1': '1024*1024', '4:3': '1024*768', '16:9': '1280*720', '9:16': '720*1280' };
         const imageSize = isPro ? (sizeMap[ratio] || '1024*1024') : '512*512';
 
-        // Step 1: Describe product
-        const descRes = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
-          method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: visionModel, input: { messages: [{ role: 'user', content: [{ image: imageBase64 }, { text: 'Describe this product in extreme detail for recreating a white background product photo. Include: exact type, all colors, materials, textures, shape, decorations, finish. Be very specific.' }] }] }, parameters: { result_format: 'message' } })
-        });
-        const descData = await descRes.json();
-        let productDesc = '';
-        const ch = descData.output?.choices;
-        if (ch?.[0]?.message?.content) { const c = ch[0].message.content; productDesc = typeof c === 'string' ? c : (Array.isArray(c) ? c.map(x => x.text || '').join('') : ''); }
+        // Step 1: Describe product via vision (OpenAI-compatible)
+        const productDesc = await callVision(apiKey, imageBase64, 'Describe this product in extreme detail for recreating a white background product photo. Include: exact type, all colors, materials, textures, shape, decorations, finish.');
         if (!productDesc) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Failed to analyze image' })); }
 
         // Step 2: Generate 4 images
@@ -403,7 +380,43 @@ server.listen(PORT, () => {
   console.log(`👉 打开浏览器访问: http://localhost:${PORT}\n`);
 });
 
+// Helper: Call DashScope Vision (OpenAI-compatible)
+async function callVision(apiKey, imageData, textPrompt) {
+  const r = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'qwen-vl-plus',
+      messages: [{ role: 'user', content: [
+        { type: 'image_url', image_url: { url: imageData } },
+        { type: 'text', text: textPrompt }
+      ]}]
+    })
+  });
+  const d = await r.json();
+  if (d.choices?.[0]?.message?.content) return d.choices[0].message.content;
+  throw new Error(d.error?.message || 'Vision API error');
+}
+
 // Helper: Call DashScope AI
+
+async function callVision(apiKey, imageData, textPrompt) {
+    const r = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'qwen-vl-plus',
+            messages: [{ role: 'user', content: [
+                { type: 'image_url', image_url: { url: imageData } },
+                { type: 'text', text: textPrompt }
+            ]}]
+        })
+    });
+    const d = await r.json();
+    if (d.choices?.[0]?.message?.content) return d.choices[0].message.content;
+    throw new Error(d.error?.message || 'Vision API error');
+}
+
 async function callAI(apiKey, model, systemMsg, userMsg) {
   const res = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
     method: 'POST',
