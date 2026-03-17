@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
     const isPro = plan === 'pro' || plan === 'unlimited';
     const sizeMap = { '1:1': '1024*1024', '4:3': '1024*768', '16:9': '1280*720', '9:16': '720*1280' };
-    const imageSize = isPro ? (sizeMap[ratio] || '1024*1024') : '512*512';
+    const imageSize = '1024*1024';
 
     try {
         // Step 1: Describe product via vision (OpenAI-compatible)
