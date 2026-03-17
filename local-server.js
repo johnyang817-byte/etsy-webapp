@@ -285,7 +285,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         for (const p of prompts) {
           const r = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', {
             method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'X-DashScope-Async': 'enable' },
-            body: JSON.stringify({ model: 'wanx-v1', input: { prompt: p }, parameters: { n: 1, size: imageSize, style: '<photo>' } })
+            body: JSON.stringify({ model: 'wanx-v1', input: { prompt: p }, parameters: { n: 1, size: imageSize } })
           });
           const d = await r.json();
           if (d.output?.task_id) taskIds.push(d.output.task_id);

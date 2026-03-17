@@ -366,14 +366,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderImagePreviews() {
     if ((window._uploadedImages||[]).length === 0) {
-      document.getElementById('img-preview-area').classList.add('hidden');
-      document.getElementById('img-identify-section').classList.add('hidden');
-      document.getElementById('img-review-section').classList.add('hidden');
-      document.getElementById('img-drop-zone').style.display = ''; return;
+      var pa = document.getElementById('img-preview-area'); if (pa) pa.classList.add('hidden');
+      var ef = document.getElementById('img-extra-fields'); if (ef) ef.classList.add('hidden');
+      var dz = document.getElementById('img-drop-zone'); if (dz) dz.style.display = '';
+      return;
     }
-    document.getElementById('img-drop-zone').style.display = 'none';
-    document.getElementById('img-preview-area').classList.remove('hidden'); document.getElementById('img-extra-fields').classList.remove('hidden');
-    document.getElementById('img-preview-grid').innerHTML = window._uploadedImages.map((img, i) =>
+    var dz2 = document.getElementById('img-drop-zone'); if (dz2) dz2.style.display = 'none';
+    var pa2 = document.getElementById('img-preview-area'); if (pa2) pa2.classList.remove('hidden');
+    var ef2 = document.getElementById('img-extra-fields'); if (ef2) ef2.classList.remove('hidden');
+    var pg = document.getElementById('img-preview-grid');
+    if (pg) pg.innerHTML = window._uploadedImages.map((img, i) =>
       `<div class="img-thumb"><img src="${img.dataUrl}" alt="Product ${i+1}"><button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button></div>`
     ).join('');
   }
