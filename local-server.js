@@ -282,7 +282,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
           fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
-            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt: p, response_format: 'url', size: '2K', stream: false, watermark: false })
+            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, response_format: 'url', size: '2K', stream: false, watermark: false })
           }).then(r => r.json()).catch(e => ({ error: e.message }))
         );
 
