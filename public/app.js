@@ -45,12 +45,27 @@ document.addEventListener('DOMContentLoaded', function () {
     localStorage.setItem(getUserKey('history'), JSON.stringify(h));
   }
 
+  // ========== Beans System ==========
+  function getBeans() {
+    var b = localStorage.getItem(getUserKey('beans'));
+    if (b === null) { setBeans(20); return 20; }
+    return parseInt(b) || 0;
+  }
+  function setBeans(n) { localStorage.setItem(getUserKey('beans'), String(n)); }
+  function useBeans(n) {
+    var current = getBeans();
+    if (current < n) return false;
+    setBeans(current - n);
+    return true;
+  }
+  function canGenerate() { return getBeans() > 0; }
+  function getPlan() { return 'standard'; }
   function getUsage() {
     const d = JSON.parse(localStorage.getItem(getUserKey('usage')) || '{}');
     const m = new Date().toISOString().slice(0, 7);
     return d.month === m ? d : { month: m, count: 0 };
   }
-  function addUsage() {
+  function useBeans(n) {
     const u = getUsage(); u.count++;
     localStorage.setItem(getUserKey('usage'), JSON.stringify(u));
     return u;
@@ -106,16 +121,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Dashboard 刷新 ==========
   function refreshDashboard() {
-    const user = getUser();
+    var user = getUser();
     if (!user) return;
-    const usage = getUsage();
-    const limit = getLimit();
-    document.getElementById('dash-usage').textContent = `${usage.count} / ${limit === Infinity ? '∞' : limit} used`;
-    document.getElementById('dash-plan').textContent = getPlan().charAt(0).toUpperCase() + getPlan().slice(1);
-    const warning = document.getElementById('usage-warning');
-    if (usage.count >= limit && limit !== Infinity) warning.classList.remove('hidden');
-    else warning.classList.add('hidden');
+    var beans = getBeans();
+    var bc = document.getElementById('beans-count'); if (bc) bc.textContent = beans;
+    var db = document.getElementById('dropdown-beans'); if (db) db.textContent = beans;
+    var dn = document.getElementById('dropdown-name'); if (dn) dn.textContent = user.name || (user.email ? user.email.split('@')[0] : 'User');
+    var de = document.getElementById('dropdown-email'); if (de) de.textContent = user.email || '';
   }
+
+  window.toggleUserMenu = function() {
+    var dd = document.getElementById('user-dropdown');
+    if (dd) dd.classList.toggle('hidden');
+  };
+  window.closeUserMenu = function() {
+    var dd = document.getElementById('user-dropdown');
+    if (dd) dd.classList.add('hidden');
+  };
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.user-menu-wrapper')) { var dd = document.getElementById('user-dropdown'); if (dd) dd.classList.add('hidden'); }
+  });
 
   // ========== DOM 元素 ==========
   const el = {
@@ -284,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Smart Generate ==========
   document.getElementById('btn-smart-generate').addEventListener('click', async () => {
-    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+    if (!canGenerate()) { alert('Not enough beans! Please buy more.'); return; }
     const keyword = document.getElementById('smart-keyword').value.trim();
     if (!keyword) { alert('Please enter a search keyword'); return; }
     const productInfo = {
@@ -443,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== Step 2: Generate from reviewed info ==========
   document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
-    if (!canGenerate()) { alert('Monthly limit reached. Please upgrade.'); return; }
+    if (!canGenerate()) { alert('Not enough beans! Please buy more.'); return; }
 
     const productInfo = {
       product_name: document.getElementById('img-product-name').value.trim(),
@@ -899,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 初始化 ==========
   updateLandingNav();
+  // ========== Init ==========
   const initUser = getUser();
   if (initUser) showPage('dashboard');
   else showPage('landing');
