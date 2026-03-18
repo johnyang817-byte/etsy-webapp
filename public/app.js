@@ -5,6 +5,18 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
     document.getElementById('page-' + page).classList.remove('hidden');
     if (page === 'dashboard') refreshDashboard();
+    if (page === 'settings') {
+      refreshDashboard();
+      var user = getUser();
+      if (user) {
+        var sn = document.getElementById('settings-name'); if (sn) sn.value = user.name || '';
+        var se = document.getElementById('settings-email'); if (se) se.value = user.email || '';
+        var sb = document.getElementById('settings-beans-balance'); if (sb) sb.textContent = getBeans();
+        var sbc = document.getElementById('settings-beans-count'); if (sbc) sbc.textContent = getBeans();
+        var sdn = document.getElementById('settings-dropdown-name'); if (sdn) sdn.textContent = user.name || user.email?.split('@')[0] || 'User';
+        var sde = document.getElementById('settings-dropdown-email'); if (sde) sde.textContent = user.email || '';
+      }
+    }
     updateLandingNav();
     window.scrollTo(0, 0);
   };
@@ -14,16 +26,17 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   function updateLandingNav() {
-    const user = getUser();
-    const loggedIn = !!user;
-    ['landing-btn-login', 'landing-btn-signup'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.toggle('hidden', loggedIn);
-    });
-    ['landing-btn-dashboard', 'landing-btn-logout'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.toggle('hidden', !loggedIn);
-    });
+    var user = getUser();
+    var loggedIn = !!user;
+    var loginBtn = document.getElementById('landing-btn-login'); if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
+    var signupBtn = document.getElementById('landing-btn-signup'); if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+    var userArea = document.getElementById('landing-user-area'); if (userArea) userArea.classList.toggle('hidden', !loggedIn);
+    if (loggedIn && user) {
+      var lb = document.getElementById('landing-beans-count'); if (lb) lb.textContent = getBeans();
+      var ldn = document.getElementById('landing-dropdown-name'); if (ldn) ldn.textContent = user.name || (user.email ? user.email.split('@')[0] : 'User');
+      var lde = document.getElementById('landing-dropdown-email'); if (lde) lde.textContent = user.email || '';
+      var ldb = document.getElementById('landing-dropdown-beans'); if (ldb) ldb.textContent = getBeans();
+    }
   }
 
   // ========== 用户系统 ==========
@@ -115,6 +128,46 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ========== 登出 ==========
+  // Settings page
+  window.showSettingsTab = function(tab) {
+    ['profile','billing','beans'].forEach(function(t) {
+      var el = document.getElementById('settings-' + t);
+      if (el) el.classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('.settings-nav-item').forEach(function(btn) { btn.classList.remove('active'); });
+    event.target.closest('.settings-nav-item')?.classList.add('active');
+    // Update beans display
+    var sb = document.getElementById('settings-beans-balance'); if (sb) sb.textContent = getBeans();
+    var sbc = document.getElementById('settings-beans-count'); if (sbc) sbc.textContent = getBeans();
+    // Update profile fields
+    var user = getUser();
+    if (user) {
+      var sn = document.getElementById('settings-name'); if (sn) sn.value = user.name || '';
+      var se = document.getElementById('settings-email'); if (se) se.value = user.email || '';
+    }
+  };
+
+  // Save profile
+  var btnSaveProfile = document.getElementById('btn-save-profile');
+  if (btnSaveProfile) btnSaveProfile.onclick = function() {
+    var user = getUser();
+    if (!user) return;
+    var newName = document.getElementById('settings-name')?.value?.trim();
+    if (newName && newName.length >= 3 && newName.length <= 30) {
+      user.name = newName;
+      setUser(user);
+      refreshDashboard();
+      updateLandingNav();
+      alert('Profile saved!');
+    } else {
+      alert('Name must be 3-30 characters');
+    }
+  };
+
+  // Landing logout
+  var landingLogoutBtn = document.getElementById('landing-btn-logout');
+  if (landingLogoutBtn) landingLogoutBtn.onclick = function() { doLogout(); };
+
   function doLogout() { localStorage.removeItem(AUTH_KEY); updateLandingNav(); showPage('landing'); }
   document.getElementById('btn-logout').addEventListener('click', doLogout);
   document.getElementById('landing-btn-logout').addEventListener('click', doLogout);
