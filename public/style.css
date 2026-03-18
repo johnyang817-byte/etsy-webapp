@@ -1749,6 +1749,31 @@ body {
     object-fit: contain;
 }
 
+
+/* ========== Avatar Initials ========== */
+.avatar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.user-avatar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
 /* ========== Landing User Area ========== */
 .landing-user-area {
     display: flex;

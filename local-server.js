@@ -300,6 +300,50 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
     return;
   }
 
+  // E-commerce Suite Generate
+  if (req.url === '/api/ecom-suite' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { imageBase64, productDesc } = JSON.parse(body);
+        if (!imageBase64) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing image' })); }
+        const doubaoKey = process.env.DOUBAO_API_KEY_V2;
+        const apiKey = process.env.DASHSCOPE_API_KEY;
+        let desc = productDesc || '';
+        if (!desc && apiKey) {
+          try {
+            const vr = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'qwen-vl-plus', messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: imageBase64 } }, { type: 'text', text: 'Identify this product precisely. What is it? Brand? Model? Key features? One paragraph.' }] }] }) });
+            const vd = await vr.json();
+            if (vd.choices?.[0]?.message?.content) desc = vd.choices[0].message.content;
+          } catch (e) { desc = 'product'; }
+        }
+        const basePrompt = `你是一个资深的SEO、GEO以及电商美工设计专家，设计符合欧美审美的电商套图。产品信息：${desc}。要求：保持产品一致性！产品外形大小包括包装文字图案全部保持不变！其他附件的细节全美式英文描述，不要有任何违规词汇！`;
+        const prompts = [
+          `${basePrompt}，使用场景图：展示产品在真实生活中的使用场景，欧美风格，自然光线，高级感，8K高清。`,
+          `${basePrompt}，送礼场景图：精美礼盒包装，节日氛围，温馨感人，附英文祝福语，8K高清。`,
+          `${basePrompt}，产品细节特写图：微距展示材质工艺质感，附英文标注产品特点，8K高清。`,
+          `${basePrompt}，产品尺寸展示图：展示尺寸颜色选项，附英文尺寸标注，电商信息图风格，8K高清。`
+        ];
+        const labels = ['Lifestyle Scene', 'Gift Scene', 'Detail Close-up', 'Size & Info'];
+        const imagePromises = prompts.map(async (prompt) => {
+          try {
+            const r = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` }, body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: '2K', output_format: 'png', watermark: false }) });
+            if (!r.ok) { const t = await r.text(); return { error: { message: `HTTP ${r.status}` } }; }
+            return await r.json();
+          } catch (e) { return { error: { message: e.message } }; }
+        });
+        const results = await Promise.all(imagePromises);
+        const allImages = [];
+        results.forEach((data, i) => { if (data.data?.[0]?.url) allImages.push({ url: data.data[0].url, label: labels[i] }); });
+        if (allImages.length === 0) throw new Error('All failed');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, images: allImages, description: desc }));
+      } catch (err) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, error: err.message })); }
+    });
+    return;
+  }
+
   // Generate
   if (req.url === '/api/generate' && req.method === 'POST') {
     let body = '';

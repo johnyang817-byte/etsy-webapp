@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
       setUser(user);
       refreshDashboard();
       updateLandingNav();
+      updateAvatars();
       alert('Profile saved!');
     } else {
       alert('Name must be 3-30 characters');
@@ -181,18 +182,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var db = document.getElementById('dropdown-beans'); if (db) db.textContent = beans;
     var dn = document.getElementById('dropdown-name'); if (dn) dn.textContent = user.name || (user.email ? user.email.split('@')[0] : 'User');
     var de = document.getElementById('dropdown-email'); if (de) de.textContent = user.email || '';
+    updateAvatars();
   }
 
   window.toggleUserMenu = function() {
-    var dd = document.getElementById('user-dropdown');
-    if (dd) dd.classList.toggle('hidden');
+    document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.toggle('hidden'); });
   };
   window.closeUserMenu = function() {
-    var dd = document.getElementById('user-dropdown');
-    if (dd) dd.classList.add('hidden');
+    document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.add('hidden'); });
   };
   document.addEventListener('click', function(e) {
-    if (!e.target.closest('.user-menu-wrapper')) { var dd = document.getElementById('user-dropdown'); if (dd) dd.classList.add('hidden'); }
+    if (!e.target.closest('.user-menu-wrapper')) {
+      document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.add('hidden'); });
+    }
   });
 
   // ========== DOM 元素 ==========
@@ -200,11 +202,13 @@ document.addEventListener('DOMContentLoaded', function () {
     modeImage: document.getElementById('mode-image'),
     modeSmart: document.getElementById('mode-smart'),
     modeWhitebg: document.getElementById('mode-whitebg'),
+    modeEcom: document.getElementById('mode-ecom'),
     modeCsv: document.getElementById('mode-csv'),
     modeHistory: document.getElementById('mode-history'),
     imageSection: document.getElementById('image-section'),
     smartSection: document.getElementById('smart-section'),
     whitebgSection: document.getElementById('whitebg-section'),
+    ecomSection: document.getElementById('ecom-section'),
     csvSection: document.getElementById('csv-section'),
     historySection: document.getElementById('history-section'),
     generateSection: document.getElementById('generate-section'),
@@ -226,14 +230,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // ========== 模式切换 ==========
   let lastModeResults = {}; // store result HTML per mode
 
-  function switchMode(mode) {
+  window.switchMode = function(mode) {
     // Save current result if visible
     var prevMode = document.querySelector('.mode-btn.active')?.id?.replace('mode-','');
     if (prevMode && !el.resultSection.classList.contains('hidden')) {
       lastModeResults[prevMode] = el.resultContent.innerHTML;
     }
 
-    ['image', 'smart', 'whitebg', 'csv', 'history'].forEach(m => {
+    ['image', 'smart', 'whitebg', 'ecom', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -259,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modeImage.addEventListener('click', () => switchMode('image'));
   el.modeSmart.addEventListener('click', () => switchMode('smart'));
   el.modeWhitebg.addEventListener('click', () => switchMode('whitebg'));
+  el.modeEcom.addEventListener('click', () => switchMode('ecom'));
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
 
@@ -852,6 +857,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (el.modeImage.classList.contains('active')) switchMode('image');
     else if (el.modeSmart.classList.contains('active')) switchMode('smart');
     else if (el.modeWhitebg.classList.contains('active')) switchMode('whitebg');
+    else if (el.modeEcom.classList.contains('active')) switchMode('ecom');
     else if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
     else switchMode('image');
@@ -977,8 +983,80 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== 初始化 ==========
   updateLandingNav();
+
+  // ========== E-commerce Suite ==========
+  window._ecomImages = [];
+  window._ecomAbort = null;
+
+  window._handleEcomFiles = function(files) {
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f.type.startsWith('image/')) continue;
+      if (f.size > 10485760) { alert('Image too large (max 10MB)'); continue; }
+      if (window._ecomImages.length >= 5) { alert('Max 5 images'); break; }
+      (function(ff) {
+        var r = new FileReader();
+        r.onload = function(e) { window._ecomImages.push({ file: ff, dataUrl: e.target.result }); window._renderEcomPreviews(); };
+        r.readAsDataURL(ff);
+      })(f);
+    }
+  };
+
+  window._renderEcomPreviews = function() {
+    var dz = document.getElementById('ecom-drop-zone'), pa = document.getElementById('ecom-preview-area'), pg = document.getElementById('ecom-preview-grid'), ef = document.getElementById('ecom-fields');
+    if (!window._ecomImages || !window._ecomImages.length) { if (pa) pa.classList.add('hidden'); if (ef) ef.classList.add('hidden'); if (dz) dz.style.display = ''; return; }
+    if (dz) dz.style.display = 'none'; if (pa) pa.classList.remove('hidden'); if (ef) ef.classList.remove('hidden');
+    if (pg) { var h = ''; for (var i = 0; i < window._ecomImages.length; i++) { h += '<div class="img-thumb"><img src="' + window._ecomImages[i].dataUrl + '"><button class="img-thumb-remove" onclick="window._ecomImages.splice(' + i + ',1);window._renderEcomPreviews()"><i class="fas fa-xmark"></i></button></div>'; } pg.innerHTML = h; }
+  };
+
+  var btnResetEcom = document.getElementById('btn-reset-ecom');
+  if (btnResetEcom) btnResetEcom.onclick = function() { window._ecomImages = []; window._renderEcomPreviews(); var l = document.getElementById('ecom-loading'); if (l) l.classList.add('hidden'); var r = document.getElementById('ecom-results'); if (r) r.classList.add('hidden'); };
+
+  var btnStopEcom = document.getElementById('btn-stop-ecom');
+  if (btnStopEcom) btnStopEcom.onclick = function() { if (window._ecomAbort) window._ecomAbort.abort(); var l = document.getElementById('ecom-loading'); if (l) l.classList.add('hidden'); var ef = document.getElementById('ecom-fields'); if (ef) ef.classList.remove('hidden'); };
+
+  var btnReuploadEcom = document.getElementById('btn-reupload-ecom');
+  if (btnReuploadEcom) btnReuploadEcom.onclick = function() { window._ecomImages = []; window._renderEcomPreviews(); var r = document.getElementById('ecom-results'); if (r) r.classList.add('hidden'); };
+
+  var btnGenerateEcom = document.getElementById('btn-generate-ecom');
+  if (btnGenerateEcom) btnGenerateEcom.onclick = async function() {
+    if (!window._ecomImages.length) { alert('Upload at least one image'); return; }
+    if (!canGenerate()) { alert('Not enough beans!'); return; }
+    var loading = document.getElementById('ecom-loading'), results = document.getElementById('ecom-results'), fields = document.getElementById('ecom-fields');
+    if (loading) loading.classList.remove('hidden'); if (results) results.classList.add('hidden'); if (fields) fields.classList.add('hidden');
+    try {
+      window._ecomAbort = new AbortController();
+      var pd = document.getElementById('ecom-product-desc'); var productDesc = pd ? pd.value.trim() : '';
+      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc }), signal: window._ecomAbort.signal });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
+      useBeans(data.images.length); refreshDashboard(); updateLandingNav();
+      data.images.forEach(function(img) { saveHistory({ product_name: 'E-com: ' + img.label, text: '', imageUrl: img.url, type: 'ecom' }); });
+      var grid = document.getElementById('ecom-results-grid');
+      if (grid) grid.innerHTML = data.images.map(function(img) { return '<div class="whitebg-result-card"><img src="' + img.url + '"><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions"><a href="' + img.url + '" download="ecom_' + img.label.replace(/ /g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> Download</a></div></div>'; }).join('');
+      if (results) results.classList.remove('hidden');
+    } catch (err) { if (err.name !== 'AbortError') alert('E-com Suite failed: ' + err.message); }
+    finally { if (loading) loading.classList.add('hidden'); }
+  };
+
+  // ========== Avatar Initials ==========
+  function getInitial() {
+    var user = getUser();
+    if (!user) return '?';
+    if (user.name) return user.name.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return '?';
+  }
+  function updateAvatars() {
+    document.querySelectorAll('.user-avatar-btn').forEach(function(btn) {
+      var initial = getInitial();
+      btn.innerHTML = '<span class="avatar-initial">' + initial + '</span>';
+    });
+  }
+
   // ========== Init ==========
   const initUser = getUser();
+  updateAvatars();
   if (initUser) showPage('dashboard');
   else showPage('landing');
 });

@@ -265,6 +265,9 @@
                     <button id="mode-whitebg" class="mode-btn">
                         <i class="fas fa-wand-sparkles"></i> Image to White BG
                     </button>
+                    <button id="mode-ecom" class="mode-btn">
+                        <i class="fas fa-images"></i> E-com Suite
+                    </button>
                     <button id="mode-csv" class="mode-btn">
                         <i class="fas fa-file-csv"></i> CSV Bulk
                     </button>
@@ -505,20 +508,7 @@
                             <img id="whitebg-original-img" src="" alt="Original">
                             <button class="btn-change-img" id="btn-change-whitebg"><i class="fas fa-sync-alt"></i> Change Image</button>
                         </div>
-                        <div class="whitebg-options">
-                            <div class="form-group">
-                                <label>Aspect Ratio</label>
-                                <div class="ratio-selector">
-                                    <button class="ratio-btn active" data-ratio="1:1">1:1</button>
-                                    <button class="ratio-btn pro-only" data-ratio="4:3">4:3 <span class="pro-tag">PRO</span></button>
-                                    <button class="ratio-btn pro-only" data-ratio="16:9">16:9 <span class="pro-tag">PRO</span></button>
-                                    <button class="ratio-btn pro-only" data-ratio="9:16">9:16 <span class="pro-tag">PRO</span></button>
-                                </div>
-                            </div>
-                            <div class="whitebg-plan-info">
-                                <div class="plan-free-info"><i class="fas fa-info-circle"></i> Free: 512px, watermarked · <strong>Pro: HD 1024px+, no watermark</strong></div>
-                            </div>
-                        </div>
+
                         <button class="btn-primary" id="btn-generate-whitebg" style="background:linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-wand-sparkles"></i> Generate 4 Product Photos</button>
                     </div>
                     <div id="whitebg-loading" class="whitebg-loading hidden">
@@ -530,6 +520,45 @@
                         <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Photos Generated</h4>
                         <div id="whitebg-results-grid" class="whitebg-results-grid"></div>
                         <button class="btn-reupload-whitebg" id="btn-reupload-whitebg"><i class="fas fa-camera"></i> Generate Another</button>
+                    </div>
+                </section>
+
+                <!-- E-commerce Suite -->
+                <section id="ecom-section" class="content-section hidden">
+                    <div class="img-hero" id="ecom-drop-zone" onclick="document.getElementById('ecom-input').value='';document.getElementById('ecom-input').click();">
+                        <div class="img-hero-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <h3>E-commerce Detail Suite</h3>
+                        <p>Upload product photos — AI generates a complete set of e-commerce detail images: lifestyle, gifting, close-up, and size info.</p>
+                        <button class="img-hero-btn" style="background:#10b981;" onclick="event.stopPropagation();document.getElementById('ecom-input').value='';document.getElementById('ecom-input').click();">
+                            <i class="fas fa-plus"></i> Choose Product Photos
+                        </button>
+                        <span class="img-hero-hint">Up to 5 images · JPG, PNG, WEBP · max 10MB each</span>
+                    </div>
+                    <input type="file" id="ecom-input" accept="image/*" multiple onchange="if(this.files.length)window._handleEcomFiles(this.files)" style="position:fixed;top:-9999px;left:-9999px;opacity:0;">
+                    <div id="ecom-preview-area" class="img-preview-area hidden">
+                        <div id="ecom-preview-grid" class="img-preview-grid"></div>
+                        <button class="btn-add-more" onclick="document.getElementById('ecom-input').value='';document.getElementById('ecom-input').click();"><i class="fas fa-plus"></i> Add More</button>
+                    </div>
+                    <div id="ecom-fields" class="img-extra-fields hidden">
+                        <div class="form-group">
+                            <label>Product Description (optional, AI will auto-detect)</label>
+                            <textarea id="ecom-product-desc" rows="3" placeholder="e.g. GARMIN Forerunner 265 GPS Running Smartwatch, Black/Powder Gray"></textarea>
+                        </div>
+                        <button class="btn-primary" style="background:linear-gradient(135deg, #10b981, #059669);" id="btn-generate-ecom"><i class="fas fa-wand-magic-sparkles"></i> Generate E-commerce Suite</button>
+                        <button class="btn-reset-upload" id="btn-reset-ecom"><i class="fas fa-arrow-rotate-left"></i> Clear & Start Over</button>
+                    </div>
+                    <div id="ecom-loading" class="whitebg-loading hidden">
+                        <div class="spinner"></div>
+                        <p>AI is generating your e-commerce detail images...</p>
+                        <p class="loading-sub">This may take 30-60 seconds</p>
+                        <button class="btn-stop-generate" id="btn-stop-ecom"><i class="fas fa-stop"></i> Stop & Start Over</button>
+                    </div>
+                    <div id="ecom-results" class="whitebg-results hidden">
+                        <h4><i class="fas fa-check-circle" style="color:#10b981;"></i> E-commerce Suite Generated</h4>
+                        <div id="ecom-results-grid" class="whitebg-results-grid"></div>
+                        <button class="btn-reupload-whitebg" style="background:linear-gradient(135deg, #10b981, #059669);" id="btn-reupload-ecom"><i class="fas fa-images"></i> Generate Another</button>
                     </div>
                 </section>
 
