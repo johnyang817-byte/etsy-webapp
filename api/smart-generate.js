@@ -199,11 +199,27 @@ ${Object.entries(dataSources).map(([k, v]) => `- ${k}: ${v.status} (${v.count ||
 
         // ========== Generate Listing ==========
         const pName = productInfo?.product_name || kw;
-        const userPromptSection = userCustomPrompt
-            ? `\n\nUSER CUSTOM INSTRUCTIONS (follow these instead of defaults):\n${userCustomPrompt}`
-            : '';
 
-        const genPrompt = `You are an Etsy Growth Hacker and SEO Copywriter.
+        let genPrompt;
+        if (userCustomPrompt) {
+            // User provided custom prompt - use it as the PRIMARY instruction
+            genPrompt = `You are an Etsy SEO expert.
+
+COMPETITOR INTELLIGENCE (from analyzing ${competitors.length} Etsy listings + Google Shopping + Google Trends):
+${analysisRes}
+
+Product: ${pName}
+Material: ${productInfo?.material || 'See photos'}
+Color: ${productInfo?.color || ''}
+Occasion: ${productInfo?.occasion || ''}
+${trendsData?.rising_queries ? `Trending Keywords: ${trendsData.rising_queries.slice(0, 5).map(q => q.query).join(', ')}` : ''}
+
+USER'S CUSTOM INSTRUCTIONS (MUST FOLLOW EXACTLY):
+${userCustomPrompt}
+
+IMPORTANT: Follow the user's custom instructions above as your PRIMARY directive. Use the competitor intelligence to enhance your output. Output must include 【标题】【描述】【标签】【属性】 sections.`;
+        } else {
+            genPrompt = `You are an Etsy Growth Hacker and SEO Copywriter.
 
 MULTI-SOURCE INTELLIGENCE:
 ${analysisRes}
@@ -227,7 +243,8 @@ ${customPrompts?.description || 'Rich, emotionally engaging description with pro
 ${customPrompts?.tags || '13 Etsy tags, each under 20 chars, comma-separated. Incorporate trending/rising keywords from Google Trends.'}
 
 【属性】
-${customPrompts?.attributes || 'Fill relevant Etsy listing attributes.'}${userPromptSection}`;
+${customPrompts?.attributes || 'Fill relevant Etsy listing attributes.'}`;
+        }
 
         const listing = await callAI(apiKey, model,
             'Expert Etsy SEO copywriter. Use multi-source intelligence and trending data to create high-converting listings.',

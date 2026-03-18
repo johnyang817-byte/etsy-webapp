@@ -174,10 +174,41 @@
         <nav class="dash-nav">
             <a class="nav-brand" href="#" onclick="showPage('landing');return false;"><i class="fas fa-paw"></i> ListingPaw AI</a>
             <div class="dash-nav-right">
-                <span id="dash-usage" class="usage-badge">0 / 20 used</span>
-                <span id="dash-plan" class="plan-badge">Free</span>
-                <button class="btn-nav" id="btn-upgrade" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView()">Upgrade</button>
-                <button class="btn-nav" id="btn-logout">Log Out</button>
+                <div class="beans-display" id="beans-display">
+                    <i class="fas fa-seedling"></i>
+                    <span id="beans-count">20</span>
+                    <button class="beans-add-btn" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView()">+</button>
+                </div>
+                <div class="user-menu-wrapper">
+                    <button class="user-avatar-btn" id="user-avatar-btn" onclick="toggleUserMenu()">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                    <div class="user-dropdown hidden" id="user-dropdown">
+                        <div class="user-dropdown-header">
+                            <div class="user-dropdown-name" id="dropdown-name">User</div>
+                            <div class="user-dropdown-email" id="dropdown-email">user@email.com</div>
+                        </div>
+                        <div class="user-dropdown-divider"></div>
+                        <div class="user-dropdown-beans">
+                            <i class="fas fa-seedling"></i>
+                            <span>Beans: <strong id="dropdown-beans">20</strong></span>
+                        </div>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item" onclick="switchMode('history');closeUserMenu()">
+                            <i class="fas fa-clock-rotate-left"></i> History
+                        </button>
+                        <button class="user-dropdown-item" onclick="showPage('landing');document.getElementById('pricing').scrollIntoView();closeUserMenu()">
+                            <i class="fas fa-coins"></i> Buy Beans
+                        </button>
+                        <button class="user-dropdown-item" onclick="closeUserMenu()">
+                            <i class="fas fa-gear"></i> Settings
+                        </button>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item user-dropdown-logout" id="btn-logout">
+                            <i class="fas fa-right-from-bracket"></i> Log Out
+                        </button>
+                    </div>
+                </div>
             </div>
         </nav>
 

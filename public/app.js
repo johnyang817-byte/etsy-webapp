@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const results = [];
     for (const product of toGen) {
       const result = await callApi(product);
-      if (!result.error) { addUsage(); saveHistory({ product_name: product.product_name, text: result.text }); }
+      if (!result.error) { useBeans(1); saveHistory({ product_name: product.product_name, text: result.text }); }
       results.push(result);
     }
     refreshDashboard(); showResults(results); showLoading(false);
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (data.competitorReport) { document.getElementById('smart-report-content').textContent = data.competitorReport; report.classList.remove('hidden'); }
-      addUsage(); saveHistory({ product_name: productInfo.product_name, text: data.listing }); refreshDashboard();
+      useBeans(1); saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' }); refreshDashboard();
       showResults([{ product: productInfo, text: data.listing }]);
     } catch (err) {
       setSmartStep('generate', '', 'Failed: ' + err.message);
@@ -506,8 +506,8 @@ document.addEventListener('DOMContentLoaded', function () {
         report.classList.remove('hidden');
       }
 
-      addUsage();
-      saveHistory({ product_name: productInfo.product_name, text: data.listing });
+      useBeans(1);
+      saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' });
       refreshDashboard();
       showResults([{ product: { product_name: productInfo.product_name }, text: data.listing }]);
 
@@ -703,6 +703,10 @@ document.addEventListener('DOMContentLoaded', function () {
         content += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
       }
       if (s.attributes) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
+      // Show image if type is image
+      if (item.type === 'image' && item.imageUrl) {
+        content += '<div class="history-image-preview"><img src="' + item.imageUrl + '" alt="Generated Image"><a href="' + item.imageUrl + '" download class="whitebg-dl-btn" style="margin-top:8px;display:inline-block;"><i class="fas fa-download"></i> Download</a></div>';
+      }
       body.innerHTML = content; body.classList.remove('hidden');
       const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
       if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
@@ -798,8 +802,8 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.ratio-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var plan = getPlan();
-      var isPro = plan === 'pro' || plan === 'unlimited';
-      if (btn.classList.contains('pro-only') && !isPro) { alert('This ratio is available for Pro plans.'); return; }
+      
+      if (btn.classList.contains('pro-only') && !true) { alert('This ratio is available for Pro plans.'); return; }
       document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       window._whitebgRatio = btn.dataset.ratio;
@@ -818,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Generate whitebg
   document.getElementById('btn-generate-whitebg').addEventListener('click', async function() {
     if (!window._whitebgImage) { alert('Please upload an image first'); return; }
-    if (!canGenerate()) { alert('Monthly limit reached.'); return; }
+    if (getBeans() < 4) { alert('Monthly limit reached.'); return; }
     var plan = getPlan();
     var loading = document.getElementById('whitebg-loading');
     var results = document.getElementById('whitebg-results');
@@ -827,12 +831,12 @@ document.addEventListener('DOMContentLoaded', function () {
       var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
-      addUsage(); refreshDashboard();
-      var isPro = plan === 'pro' || plan === 'unlimited';
+      useBeans(1); refreshDashboard();
+      
       var grid = document.getElementById('whitebg-results-grid');
       grid.innerHTML = data.images.map(function(img, i) {
-        var wm = isPro ? '' : 'whitebg-watermark';
-        var dl = isPro ? '<a href="' + img.url + '" download="product_' + img.label.replace(/\s/g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> HD Download</a>' : '<span class="whitebg-dl-btn disabled"><i class="fas fa-lock"></i> PRO for HD</span>';
+        var wm = true ? '' : '';
+        var dl = true ? '<a href="' + img.url + '" download="product_' + img.label.replace(/\s/g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> HD Download</a>' : '<span class="whitebg-dl-btn disabled"><i class="fas fa-lock"></i> PRO for HD</span>';
         return '<div class="whitebg-result-card"><div class="' + wm + '"><img src="' + img.url + '" alt="' + img.label + '"></div><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions">' + dl + '</div></div>';
       }).join('');
       results.classList.remove('hidden');

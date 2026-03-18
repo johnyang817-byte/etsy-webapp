@@ -809,23 +809,7 @@ body {
     pointer-events: none;
 }
 
-.whitebg-watermark {
-    position: relative;
-}
 
-.whitebg-watermark::after {
-    content: 'ListingPaw';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-30deg);
-    font-size: 2rem;
-    font-weight: 800;
-    color: rgba(0,0,0,0.08);
-    pointer-events: none;
-    white-space: nowrap;
-    letter-spacing: 0.1em;
-}
 
 .btn-reupload-whitebg {
     display: block;
@@ -1639,4 +1623,128 @@ body {
     font-size: 0.75rem;
     color: var(--text-secondary);
     white-space: nowrap;
+}
+
+/* ========== Beans Display ========== */
+.beans-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg);
+    border-radius: 980px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.beans-display i { color: #16a34a; }
+
+.beans-add-btn {
+    width: 22px;
+    height: 22px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.beans-add-btn:hover { background: #15803d; transform: scale(1.1); }
+
+/* ========== User Menu ========== */
+.user-menu-wrapper { position: relative; }
+
+.user-avatar-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--bg);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    transition: all 0.15s;
+}
+
+.user-avatar-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 260px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    z-index: 200;
+    overflow: hidden;
+    animation: dropdownIn 0.15s ease;
+}
+
+@keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-dropdown-header { padding: 16px 18px 12px; }
+.user-dropdown-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+.user-dropdown-email { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 2px; }
+
+.user-dropdown-divider { height: 1px; background: var(--border); margin: 0 12px; }
+
+.user-dropdown-beans {
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #16a34a;
+}
+
+.user-dropdown-beans i { color: #16a34a; }
+.user-dropdown-beans strong { font-weight: 700; }
+
+.user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 18px;
+    background: none;
+    border: none;
+    font-size: 0.88rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.1s;
+    text-align: left;
+}
+
+.user-dropdown-item:hover { background: var(--bg); }
+.user-dropdown-item i { width: 16px; color: var(--text-secondary); }
+.user-dropdown-logout { color: #ff3b30; }
+.user-dropdown-logout i { color: #ff3b30; }
+
+/* ========== History Image Preview ========== */
+.history-image-preview {
+    text-align: center;
+    padding: 12px;
+}
+
+.history-image-preview img {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    object-fit: contain;
 }
