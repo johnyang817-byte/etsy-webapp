@@ -61,16 +61,24 @@ document.addEventListener('DOMContentLoaded', function () {
   // ========== Beans System ==========
   function getBeans() {
     var b = localStorage.getItem(getUserKey('beans'));
-    if (b === null) { setBeans(20); return 20; }
+    if (b === null) { setBeans(20); logBeanTransaction('gift', 20, 'Welcome bonus'); return 20; }
     return parseInt(b) || 0;
   }
   function setBeans(n) { localStorage.setItem(getUserKey('beans'), String(n)); }
-  function useBeans(n) {
+  function useBeans(n, desc) {
     var current = getBeans();
     if (current < n) return false;
     setBeans(current - n);
+    logBeanTransaction('use', -n, desc || 'Generation');
     return true;
   }
+  function logBeanTransaction(type, amount, desc) {
+    var logs = JSON.parse(localStorage.getItem(getUserKey('bean_logs')) || '[]');
+    logs.unshift({ type: type, amount: amount, desc: desc, date: new Date().toISOString(), balance: getBeans() });
+    if (logs.length > 100) logs.length = 100;
+    localStorage.setItem(getUserKey('bean_logs'), JSON.stringify(logs));
+  }
+  function getBeanLogs() { return JSON.parse(localStorage.getItem(getUserKey('bean_logs')) || '[]'); }
   function canGenerate() { return getBeans() > 0; }
   function getPlan() { return 'standard'; }
   function getUsage() {
@@ -134,6 +142,26 @@ document.addEventListener('DOMContentLoaded', function () {
       var el = document.getElementById('settings-' + t);
       if (el) el.classList.toggle('hidden', t !== tab);
     });
+    // Render billing history
+    if (tab === 'billing') {
+      var tbody = document.getElementById('billing-history-body');
+      if (tbody) {
+        var logs = getBeanLogs();
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="billing-empty">No transaction history</td></tr>';
+        } else {
+          tbody.innerHTML = logs.map(function(log) {
+            var d = new Date(log.date);
+            var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            var amountClass = log.amount > 0 ? 'color:#16a34a;' : 'color:#ef4444;';
+            var amountStr = log.amount > 0 ? '+' + log.amount : String(log.amount);
+            var typeStr = log.type === 'gift' ? 'Gift' : log.type === 'purchase' ? 'Purchase' : 'Usage';
+            var statusStr = log.type === 'gift' ? '<span style="color:#16a34a;">Credited</span>' : '<span style="color:#ef4444;">Deducted</span>';
+            return '<tr><td>' + (log.desc || '-') + '</td><td>' + typeStr + '</td><td>' + statusStr + '</td><td style="' + amountClass + 'font-weight:600;">' + amountStr + '</td><td>' + dateStr + '</td></tr>';
+          }).join('');
+        }
+      }
+    }
     document.querySelectorAll('.settings-nav-item').forEach(function(btn) { btn.classList.remove('active'); });
     event.target.closest('.settings-nav-item')?.classList.add('active');
     // Update beans display
@@ -346,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const results = [];
     for (const product of toGen) {
       const result = await callApi(product);
-      if (!result.error) { useBeans(1); saveHistory({ product_name: product.product_name, text: result.text }); }
+      if (!result.error) { useBeans(1, 'Smart Generate'); saveHistory({ product_name: product.product_name, text: result.text }); }
       results.push(result);
     }
     refreshDashboard(); showResults(results); showLoading(false);
@@ -412,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (data.competitorReport) { document.getElementById('smart-report-content').textContent = data.competitorReport; report.classList.remove('hidden'); }
-      useBeans(1); saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' }); refreshDashboard();
+      useBeans(1, 'Smart Generate'); saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' }); refreshDashboard();
       showResults([{ product: productInfo, text: data.listing }]);
     } catch (err) {
       setSmartStep('generate', '', 'Failed: ' + err.message);
@@ -757,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div class="history-item-row">
             <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
             <div class="history-item-toggle" onclick="historyToggleView(${i})"><i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i></div>
-            <span class="history-item-name" onclick="historyToggleView(${i})">${escapeHtml(item.product_name)}</span>
+            <span class="history-item-name" onclick="historyToggleView(${i})">${typeIcon + ' ' + escapeHtml(item.product_name)}</span>
             <span class="history-item-date">${date}</span>
           </div>
           <div class="history-item-body ${isOpen ? '' : 'hidden'}" id="history-body-${i}"></div>
@@ -915,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
-      useBeans(1); refreshDashboard();
+      useBeans(1, 'Image to Copy'); refreshDashboard();
       
       var grid = document.getElementById('whitebg-results-grid');
       grid.innerHTML = data.images.map(function(img, i) {
@@ -1027,17 +1055,36 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       window._ecomAbort = new AbortController();
       var pd = document.getElementById('ecom-product-desc'); var productDesc = pd ? pd.value.trim() : '';
-      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc }), signal: window._ecomAbort.signal });
+      var customPrompt = (document.getElementById('ecom-custom-prompt')?.value || '').trim();
+      var imageCount = document.getElementById('ecom-count')?.value || '4';
+      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc, customPrompt: customPrompt, imageCount: imageCount }), signal: window._ecomAbort.signal });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
-      useBeans(data.images.length); refreshDashboard(); updateLandingNav();
+      useBeans(data.images.length, 'E-com Suite (' + data.images.length + ' images)'); refreshDashboard(); updateLandingNav();
       data.images.forEach(function(img) { saveHistory({ product_name: 'E-com: ' + img.label, text: '', imageUrl: img.url, type: 'ecom' }); });
       var grid = document.getElementById('ecom-results-grid');
       if (grid) grid.innerHTML = data.images.map(function(img) { return '<div class="whitebg-result-card"><img src="' + img.url + '"><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions"><a href="' + img.url + '" download="ecom_' + img.label.replace(/ /g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> Download</a></div></div>'; }).join('');
       if (results) results.classList.remove('hidden');
-    } catch (err) { if (err.name !== 'AbortError') alert('E-com Suite failed: ' + err.message); }
+    } catch (err) { if (err.name !== 'AbortError') alert('E-com Suite failed: ' + err.message); var ef2 = document.getElementById('ecom-fields'); if (ef2) ef2.classList.remove('hidden'); }
     finally { if (loading) loading.classList.add('hidden'); }
   };
+
+
+  // ========== Batch Download ==========
+  function batchDownload(gridId) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+    var links = grid.querySelectorAll('a[download]');
+    links.forEach(function(a, i) {
+      setTimeout(function() { a.click(); }, i * 500);
+    });
+  }
+
+  var btnDlAllWhitebg = document.getElementById('btn-download-all-whitebg');
+  if (btnDlAllWhitebg) btnDlAllWhitebg.onclick = function() { batchDownload('whitebg-results-grid'); };
+
+  var btnDlAllEcom = document.getElementById('btn-download-all-ecom');
+  if (btnDlAllEcom) btnDlAllEcom.onclick = function() { batchDownload('ecom-results-grid'); };
 
   // ========== Avatar Initials ==========
   function getInitial() {

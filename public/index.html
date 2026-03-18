@@ -509,6 +509,12 @@
                             <button class="btn-change-img" id="btn-change-whitebg"><i class="fas fa-sync-alt"></i> Change Image</button>
                         </div>
 
+                        <div class="form-row" style="margin-bottom:12px;">
+                            <div class="form-group">
+                                <label>Number of Images</label>
+                                <select id="whitebg-count"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
+                            </div>
+                        </div>
                         <button class="btn-primary" id="btn-generate-whitebg" style="background:linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-wand-sparkles"></i> Generate 4 Product Photos</button>
                     </div>
                     <div id="whitebg-loading" class="whitebg-loading hidden">
@@ -519,6 +525,7 @@
                     <div id="whitebg-results" class="whitebg-results hidden">
                         <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Photos Generated</h4>
                         <div id="whitebg-results-grid" class="whitebg-results-grid"></div>
+                        <button class="btn-primary" style="width:100%;margin-top:12px;background:#333;" id="btn-download-all-whitebg"><i class="fas fa-download"></i> Download All Images</button>
                         <button class="btn-reupload-whitebg" id="btn-reupload-whitebg"><i class="fas fa-camera"></i> Generate Another</button>
                     </div>
                 </section>
@@ -546,6 +553,16 @@
                             <label>Product Description (optional, AI will auto-detect)</label>
                             <textarea id="ecom-product-desc" rows="3" placeholder="e.g. GARMIN Forerunner 265 GPS Running Smartwatch, Black/Powder Gray"></textarea>
                         </div>
+                        <div class="form-group">
+                            <label>Custom Prompt (optional)</label>
+                            <textarea id="ecom-custom-prompt" rows="3" placeholder="Leave blank for default. Or write your own instructions, e.g. 'Focus on outdoor sports scenes, target audience: young athletes'"></textarea>
+                        </div>
+                        <div class="form-row" style="margin-bottom:12px;">
+                            <div class="form-group">
+                                <label>Number of Images</label>
+                                <select id="ecom-count"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
+                            </div>
+                        </div>
                         <button class="btn-primary" style="background:linear-gradient(135deg, #10b981, #059669);" id="btn-generate-ecom"><i class="fas fa-wand-magic-sparkles"></i> Generate E-commerce Suite</button>
                         <button class="btn-reset-upload" id="btn-reset-ecom"><i class="fas fa-arrow-rotate-left"></i> Clear & Start Over</button>
                     </div>
@@ -558,6 +575,7 @@
                     <div id="ecom-results" class="whitebg-results hidden">
                         <h4><i class="fas fa-check-circle" style="color:#10b981;"></i> E-commerce Suite Generated</h4>
                         <div id="ecom-results-grid" class="whitebg-results-grid"></div>
+                        <button class="btn-primary" style="width:100%;margin-top:12px;background:#333;" id="btn-download-all-ecom"><i class="fas fa-download"></i> Download All Images</button>
                         <button class="btn-reupload-whitebg" style="background:linear-gradient(135deg, #10b981, #059669);" id="btn-reupload-ecom"><i class="fas fa-images"></i> Generate Another</button>
                     </div>
                 </section>
