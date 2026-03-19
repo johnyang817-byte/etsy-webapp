@@ -9,12 +9,13 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-    const { imageBase64, productDesc, customPrompt, imageCount } = req.body || {};
+    const { imageBase64, productDesc, customPrompt, imageCount, size } = req.body || {};
     if (!imageBase64) return res.status(400).json({ success: false, error: 'Missing image' });
 
     const doubaoKey = process.env.DOUBAO_API_KEY_V2 || 'b3f3eac1-8556-4f20-8ad7-ec42f75b02f1';
     const dashscopeKey = process.env.DASHSCOPE_API_KEY;
     const count = Math.min(Math.max(parseInt(imageCount) || 4, 1), 6);
+    const imageSize = size || '2K';
 
     try {
         // Step 1: If no product description, use vision to identify
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
                         model: 'doubao-seedream-5-0-260128',
                         prompt,
                         image: imageBase64,
-                        size: '2K',
+                        size: imageSize,
                         output_format: 'png',
                         watermark: false
                     })

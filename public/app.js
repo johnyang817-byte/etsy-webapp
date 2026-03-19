@@ -1057,7 +1057,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var pd = document.getElementById('ecom-product-desc'); var productDesc = pd ? pd.value.trim() : '';
       var customPrompt = (document.getElementById('ecom-custom-prompt')?.value || '').trim();
       var imageCount = document.getElementById('ecom-count')?.value || '4';
-      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc, customPrompt: customPrompt, imageCount: imageCount }), signal: window._ecomAbort.signal });
+      var ecomRatioBtn = document.querySelector('#ecom-ratio-pills .ratio-pill.active');
+      var ecomSize = ecomRatioBtn ? ecomRatioBtn.dataset.size : '2K';
+      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc, customPrompt: customPrompt, imageCount: imageCount, size: ecomSize }), signal: window._ecomAbort.signal });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
       useBeans(data.images.length, 'E-com Suite (' + data.images.length + ' images)'); refreshDashboard(); updateLandingNav();
@@ -1069,6 +1071,51 @@ document.addEventListener('DOMContentLoaded', function () {
     finally { if (loading) loading.classList.add('hidden'); }
   };
 
+
+
+  // ========== Ratio Pills ==========
+  document.querySelectorAll('.ratio-pills').forEach(function(container) {
+    container.querySelectorAll('.ratio-pill').forEach(function(pill) {
+      pill.onclick = function() {
+        container.querySelectorAll('.ratio-pill').forEach(function(p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+      };
+    });
+  });
+
+  // ========== AI Write Selling Points ==========
+  var btnAiSelling = document.getElementById('btn-ai-selling-points');
+  if (btnAiSelling) btnAiSelling.onclick = async function() {
+    var descEl = document.getElementById('ecom-product-desc');
+    var spEl = document.getElementById('ecom-selling-points');
+    if (!spEl) return;
+    var productDesc = descEl ? descEl.value.trim() : '';
+    var imgDesc = '';
+    if (window._ecomImages && window._ecomImages.length > 0) {
+      btnAiSelling.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Writing...';
+      btnAiSelling.disabled = true;
+      try {
+        var apiKey = null; // Will use server-side
+        var res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product: { product_name: productDesc || 'product', keywords: 'selling points' }, aiSellingPoints: true })
+        });
+        var data = await res.json();
+        if (data.success && data.text) {
+          spEl.value = data.text;
+        } else {
+          spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
+        }
+      } catch (e) {
+        spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
+      }
+      btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
+      btnAiSelling.disabled = false;
+    } else {
+      spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
+    }
+  };
 
   // ========== Batch Download ==========
   function batchDownload(gridId) {

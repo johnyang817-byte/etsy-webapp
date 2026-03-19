@@ -282,7 +282,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
           fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
-            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: '2K', output_format: 'png', watermark: false })
+            body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: imageSize, output_format: 'png', watermark: false })
           }).then(r => r.json()).catch(e => ({ error: e.message }))
         );
 
@@ -306,11 +306,12 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { imageBase64, productDesc, customPrompt, imageCount } = JSON.parse(body);
+        const { imageBase64, productDesc, customPrompt, imageCount, size } = JSON.parse(body);
         if (!imageBase64) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing image' })); }
         const doubaoKey = process.env.DOUBAO_API_KEY_V2;
         const apiKey = process.env.DASHSCOPE_API_KEY;
         const count = Math.min(Math.max(parseInt(imageCount) || 4, 1), 6);
+        const imageSize = size || '2K';
         let desc = productDesc || '';
         if (!desc && apiKey) {
           try {

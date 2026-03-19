@@ -514,8 +514,17 @@
                                 <label>Number of Images</label>
                                 <select id="whitebg-count"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
                             </div>
+                            <div class="form-group">
+                                <label>Aspect Ratio</label>
+                                <div class="ratio-pills" id="whitebg-ratio-pills">
+                                    <button class="ratio-pill active" data-ratio="1:1" data-size="2K">1:1</button>
+                                    <button class="ratio-pill" data-ratio="3:4" data-size="1328x1774">3:4</button>
+                                    <button class="ratio-pill" data-ratio="9:16" data-size="1328x2362">9:16</button>
+                                    <button class="ratio-pill" data-ratio="16:9" data-size="2362x1328">16:9</button>
+                                </div>
+                            </div>
                         </div>
-                        <button class="btn-primary" id="btn-generate-whitebg" style="background:linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-wand-sparkles"></i> Generate 4 Product Photos</button>
+                        <button class="btn-primary" id="btn-generate-whitebg" style="background:linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-wand-sparkles"></i> Generate Product Photos</button>
                     </div>
                     <div id="whitebg-loading" class="whitebg-loading hidden">
                         <div class="spinner"></div>
@@ -554,13 +563,29 @@
                             <textarea id="ecom-product-desc" rows="3" placeholder="e.g. GARMIN Forerunner 265 GPS Running Smartwatch, Black/Powder Gray"></textarea>
                         </div>
                         <div class="form-group">
+                            <label>Core Selling Points</label>
+                            <div class="selling-points-wrap">
+                                <textarea id="ecom-selling-points" rows="3" placeholder="e.g. Waterproof, GPS tracking, 14-day battery life, lightweight 47g"></textarea>
+                                <button class="btn-ai-write" id="btn-ai-selling-points" type="button"><i class="fas fa-wand-magic-sparkles"></i> AI Write</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label>Custom Prompt (optional)</label>
-                            <textarea id="ecom-custom-prompt" rows="3" placeholder="Leave blank for default. Or write your own instructions, e.g. 'Focus on outdoor sports scenes, target audience: young athletes'"></textarea>
+                            <textarea id="ecom-custom-prompt" rows="3" placeholder="Leave blank for default. Or write your own instructions."></textarea>
                         </div>
                         <div class="form-row" style="margin-bottom:12px;">
                             <div class="form-group">
                                 <label>Number of Images</label>
                                 <select id="ecom-count"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Aspect Ratio</label>
+                                <div class="ratio-pills" id="ecom-ratio-pills">
+                                    <button class="ratio-pill active" data-ratio="1:1" data-size="2K">1:1</button>
+                                    <button class="ratio-pill" data-ratio="3:4" data-size="1328x1774">3:4</button>
+                                    <button class="ratio-pill" data-ratio="9:16" data-size="1328x2362">9:16</button>
+                                    <button class="ratio-pill" data-ratio="16:9" data-size="2362x1328">16:9</button>
+                                </div>
                             </div>
                         </div>
                         <button class="btn-primary" style="background:linear-gradient(135deg, #10b981, #059669);" id="btn-generate-ecom"><i class="fas fa-wand-magic-sparkles"></i> Generate E-commerce Suite</button>
