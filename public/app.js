@@ -1089,32 +1089,29 @@ document.addEventListener('DOMContentLoaded', function () {
     var descEl = document.getElementById('ecom-product-desc');
     var spEl = document.getElementById('ecom-selling-points');
     if (!spEl) return;
-    var productDesc = descEl ? descEl.value.trim() : '';
-    var imgDesc = '';
-    if (window._ecomImages && window._ecomImages.length > 0) {
-      btnAiSelling.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Writing...';
-      btnAiSelling.disabled = true;
-      try {
-        var apiKey = null; // Will use server-side
-        var res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product: { product_name: productDesc || 'product', keywords: 'selling points' }, aiSellingPoints: true })
-        });
-        var data = await res.json();
-        if (data.success && data.text) {
-          spEl.value = data.text;
-        } else {
-          spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
-        }
-      } catch (e) {
-        spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
+    var productName = descEl ? descEl.value.trim() : '';
+    if (!productName) { alert('Please enter a product description first'); return; }
+    btnAiSelling.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btnAiSelling.disabled = true;
+    try {
+      var bodyData = { productName: productName };
+      if (window._ecomImages && window._ecomImages.length > 0) bodyData.imageBase64 = window._ecomImages[0].dataUrl;
+      var res = await fetch('/api/ai-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData)
+      });
+      var data = await res.json();
+      if (data.success && data.text) {
+        spEl.value = data.text;
+      } else {
+        alert('AI Write failed: ' + (data.error || 'Unknown error'));
       }
-      btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
-      btnAiSelling.disabled = false;
-    } else {
-      spEl.value = 'Premium quality, Handmade with care, Perfect gift, Fast shipping, Satisfaction guaranteed';
+    } catch (e) {
+      alert('AI Write failed: ' + e.message);
     }
+    btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
+    btnAiSelling.disabled = false;
   };
 
   // ========== Batch Download ==========

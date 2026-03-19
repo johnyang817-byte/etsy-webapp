@@ -71,8 +71,8 @@ export default async function handler(req, res) {
                         watermark: false
                     })
                 });
-                if (!r.ok) { const t = await r.text(); return { error: { message: `HTTP ${r.status}: ${t.slice(0, 100)}` } }; }
-                return await r.json();
+                const text = await r.text();
+                try { return JSON.parse(text); } catch (e) { return { error: { message: 'Invalid response: ' + text.slice(0, 100) } }; }
             } catch (e) { return { error: { message: e.message } }; }
         });
 

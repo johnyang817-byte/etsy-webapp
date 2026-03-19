@@ -300,6 +300,31 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
     return;
   }
 
+  // AI Write (selling points)
+  if (req.url === '/api/ai-write' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { productName, imageBase64 } = JSON.parse(body);
+        if (!productName && !imageBase64) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Provide product name' })); }
+        const apiKey = process.env.DASHSCOPE_API_KEY;
+        let productInfo = productName || '';
+        if (imageBase64 && apiKey) {
+          try {
+            const vr = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'qwen-vl-plus', messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: imageBase64 } }, { type: 'text', text: 'Identify this product. Key features, materials, colors, design, target audience. One paragraph.' }] }] }) });
+            const vd = await vr.json();
+            if (vd.choices?.[0]?.message?.content) productInfo = (productName ? productName + '. ' : '') + vd.choices[0].message.content;
+          } catch (e) {}
+        }
+        const r = await callAI(apiKey, 'qwen-turbo', 'E-commerce product marketing expert. Output only selling points.', `Generate 5-8 core selling points for: ${productInfo}. Format: comma-separated, concise 3-8 words each. Focus on quality, uniqueness, gift potential. Output ONLY the list.`, 500);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, text: r.trim() }));
+      } catch (err) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, error: err.message })); }
+    });
+    return;
+  }
+
   // E-commerce Suite Generate
   if (req.url === '/api/ecom-suite' && req.method === 'POST') {
     let body = '';
