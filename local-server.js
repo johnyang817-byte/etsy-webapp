@@ -371,7 +371,7 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         const labels = allLabels.slice(0, count);
         const imagePromises = prompts.map(async (prompt) => {
           try {
-            const r = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` }, body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: '2K', output_format: 'png', watermark: false }) });
+            const r = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` }, body: JSON.stringify({ model: 'doubao-seedream-5-0-260128', prompt, image: imageBase64, size: '2K', output_format: 'png', watermark: false, seed: Math.floor(Math.random() * 1000000) }) });
             if (!r.ok) { const t = await r.text(); return { error: { message: `HTTP ${r.status}` } }; }
             return await r.json();
           } catch (e) { return { error: { message: e.message } }; }
