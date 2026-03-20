@@ -258,8 +258,11 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { imageBase64 } = JSON.parse(body);
+        const { imageBase64, ratio, imageCount } = JSON.parse(body);
         if (!imageBase64) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing image' })); }
+        
+        // 根据 ratio 设置 imageSize
+        const imageSize = ratio === '1:1' ? '1024x1024' : ratio === '3:4' ? '768x1024' : ratio === '16:9' ? '1024x576' : '1024x1024';
         const apiKey = process.env.DASHSCOPE_API_KEY;
         const doubaoKey = process.env.DOUBAO_API_KEY_V2 || 'b3f3eac1-8556-4f20-8ad7-ec42f75b02f1';
         if (!apiKey || !doubaoKey) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Missing API Key' })); }
@@ -268,15 +271,21 @@ const server = http.createServer({ maxHeaderSize: 16384 }, async (req, res) => {
         const productDesc = await callVision(apiKey, imageBase64, 'Describe ONLY what you see in this product image. Do NOT guess or add details not visible. Include: exact product type, exact colors, exact materials, shape, all visible details (clasps, charms, patterns), surface finish. Say "not visible" for anything unclear.');
         if (!productDesc) { res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, error: 'Failed to analyze image' })); }
 
-        // Step 2: 豆包Seedream并行生成4张
+        // Step 2: 豆包Seedream根据imageCount生成图片
+        const count = parseInt(imageCount) || 4;
         const basePrompt = `产品精修，产品置于纯净的纯白背景上，精准还原产品颜色与包装材质，清除所有指纹灰尘与瑕疵，保留产品本身，提升整体质感和高级感，符合电商主图标准，产品一致性强，写实高清。严格按照以下描述还原产品，不要添加任何原图中没有的元素: ${productDesc}`;
-        const prompts = [
+        const allPrompts = [
           `${basePrompt}，正面平视角度，产品居中，不要添加额外装饰，专业棚拍，8K高清，商业摄影质感。`,
           `${basePrompt}，45度侧面角度，展示产品立体感和层次，不要改变产品任何细节，专业棚拍，8K高清。`,
           `${basePrompt}，微距特写，展示材质纹理和工艺细节，不要添加原图没有的元素，浅景深效果，8K高清。`,
-          `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景，8K高清。`
+          `${basePrompt}，优雅模特佩戴/使用该产品，产品必须与原图完全一致不要修改，时尚杂志风格，柔和自然光，高级感，简约背景，8K高清。`,
+          `${basePrompt}，俯视角度，展示产品整体布局，不要添加额外元素，专业棚拍，8K高清。`,
+          `${basePrompt}，侧面特写，展示产品侧面细节和厚度，专业棚拍，8K高清。`
         ];
-        const labels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle'];
+        const allLabels = ['Front View', '45° Angle', 'Detail Close-up', 'Model Lifestyle', 'Top View', 'Side Detail'];
+        
+        const prompts = allPrompts.slice(0, count);
+        const labels = allLabels.slice(0, count);
 
         const imagePromises = prompts.map(prompt =>
           fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {

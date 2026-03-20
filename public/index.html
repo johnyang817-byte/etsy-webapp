@@ -495,7 +495,7 @@
                             <i class="fas fa-wand-sparkles"></i>
                         </div>
                         <h3>Image to White BG</h3>
-                        <p>Upload a product photo — AI generates 4 professional images: front view, 45° angle, detail close-up, and model lifestyle shot.</p>
+                        <p>Upload a product photo — AI generates professional product images with pure white background.</p>
                         <button class="img-hero-btn" id="whitebg-upload-btn" style="background:#f59e0b;" onclick="event.stopPropagation();document.getElementById('whitebg-input').value='';document.getElementById('whitebg-input').click();">
                             <i class="fas fa-plus"></i> Choose Product Photo
                         </button>
@@ -528,8 +528,8 @@
                     </div>
                     <div id="whitebg-loading" class="whitebg-loading hidden">
                         <div class="spinner"></div>
-                        <p>AI is generating 4 professional product photos...</p>
-                        <p class="loading-sub">This may take 1-2 minutes (4 images in parallel)</p>
+                        <p>AI is generating <span id="whitebg-loading-count">4</span> professional product photos...</p>
+                        <p class="loading-sub">This may take 1-2 minutes (<span id="whitebg-loading-parallel">4</span> images in parallel)</p>
                     </div>
                     <div id="whitebg-results" class="whitebg-results hidden">
                         <h4><i class="fas fa-check-circle" style="color:#34c759;"></i> Product Photos Generated</h4>

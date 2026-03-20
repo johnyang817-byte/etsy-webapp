@@ -765,7 +765,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const history = getHistory();
     const list = document.getElementById('history-list');
     const empty = document.getElementById('history-empty');
-    if (history.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    if (history.length === 0) { 
+      list.innerHTML = ''; 
+      empty.classList.remove('hidden');
+      // 添加生成测试数据按钮
+      if (!document.getElementById('btn-generate-test-data')) {
+        const testBtn = document.createElement('button');
+        testBtn.id = 'btn-generate-test-data';
+        testBtn.className = 'btn-secondary';
+        testBtn.style.marginTop = '20px';
+        testBtn.innerHTML = '<i class="fas fa-flask"></i> Generate Test Data';
+        testBtn.onclick = generateTestHistoryData;
+        empty.appendChild(testBtn);
+      }
+      return; 
+    }
     empty.classList.add('hidden');
     const hasSelected = historySelected.size > 0;
     list.innerHTML =
@@ -933,14 +947,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Generate whitebg
   document.getElementById('btn-generate-whitebg').addEventListener('click', async function() {
+    // 获取图片数量并扣减豆子
+    var imageCount = parseInt(document.getElementById('whitebg-count')?.value || '4');
+    if (!useBeans(imageCount, 'White BG Generate')) {
+      alert('Not enough beans! Please upgrade your plan.');
+      return;
+    }
+    
     if (!window._whitebgImage) { alert('Please upload an image first'); return; }
     if (getBeans() < 4) { alert('Monthly limit reached.'); return; }
     var plan = getPlan();
     var loading = document.getElementById('whitebg-loading');
     var results = document.getElementById('whitebg-results');
+    // 更新加载提示中的图片数量
+    document.getElementById('whitebg-loading-count').textContent = imageCount;
+    document.getElementById('whitebg-loading-parallel').textContent = imageCount;
     loading.classList.remove('hidden'); results.classList.add('hidden');
     try {
-      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
+      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio, imageCount: imageCount }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
       useBeans(1, 'Image to Copy'); refreshDashboard();
@@ -1144,6 +1168,46 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.innerHTML = '<span class="avatar-initial">' + initial + '</span>';
     });
   }
+
+  // ========== Generate Test History Data ==========
+  window.generateTestHistoryData = function() {
+    const testData = [
+      {
+        product_name: 'Handmade Silver Moon Necklace',
+        text: '🌙✨ Celestial Beauty | 40% OFF | Free Shipping\n\nSometimes the smallest things carry the biggest meaning. This delicate silver moon necklace captures the magic of starlit nights...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 0.5).toISOString()
+      },
+      {
+        product_name: 'Personalized Birthstone Ring',
+        text: '💎🎁 Perfect Gift | New Arrival | Ready to Ship\n\nCelebrate her special day with a ring that tells her story. Each birthstone carries ancient wisdom...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 1.2).toISOString()
+      },
+      {
+        product_name: 'Vintage Pearl Earrings Set',
+        text: '🦪✨ Timeless Elegance | Limited Edition\n\nPearls have adorned royalty for centuries. These vintage-inspired earrings bring that same regal charm...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 2.5).toISOString()
+      },
+      {
+        product_name: 'Custom Engraved Bracelet',
+        text: '💫 Personal Touch | Best Seller | Gift Ready\n\nWords have power. When engraved on sterling silver, they become treasures...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 3.1).toISOString()
+      },
+      {
+        product_name: 'Crystal Healing Pendant',
+        text: '🔮 Spiritual Wellness | Handmade | Free Gift Box\n\nMore than jewelry, this crystal pendant is a companion for your journey...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 4.8).toISOString()
+      }
+    ];
+    
+    testData.forEach(item => saveHistory(item));
+    renderHistory();
+    alert('✅ Generated 5 test history items!');
+  };
 
   // ========== Init ==========
   const initUser = getUser();
