@@ -86,11 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const m = new Date().toISOString().slice(0, 7);
     return d.month === m ? d : { month: m, count: 0 };
   }
-  function useBeans(n) {
-    const u = getUsage(); u.count++;
-    localStorage.setItem(getUserKey('usage'), JSON.stringify(u));
-    return u;
-  }
+  // 删除重复的 useBeans 函数定义，统一使用上面的版本
 
   function getPlan() { return getUser()?.plan || 'free'; }
   function getLimit() { const p = getPlan(); return p === 'unlimited' ? Infinity : p === 'pro' ? 100 : 20; }
@@ -795,6 +791,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const isSelected = historySelected.has(i);
         const isOpen = historyViewOpen.has(i);
+        const typeIcon = item.type === 'whitebg' ? '🖼️' : item.type === 'ecom' ? '🛒' : item.type === 'copy' ? '📝' : '📄';
         return `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
           <div class="history-item-row">
             <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
@@ -828,8 +825,8 @@ document.addEventListener('DOMContentLoaded', function () {
         content += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
       }
       if (s.attributes) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
-      // Show image if type is image
-      if (item.type === 'image' && item.imageUrl) {
+      // Show image if type is image, whitebg, or ecom
+      if ((item.type === 'image' || item.type === 'whitebg' || item.type === 'ecom') && item.imageUrl) {
         content += '<div class="history-image-preview"><img src="' + item.imageUrl + '" alt="Generated Image"><a href="' + item.imageUrl + '" download class="whitebg-dl-btn" style="margin-top:8px;display:inline-block;"><i class="fas fa-download"></i> Download</a></div>';
       }
       body.innerHTML = content; body.classList.remove('hidden');
@@ -967,7 +964,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio, imageCount: imageCount }) });
       var data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
-      useBeans(1, 'Image to Copy'); refreshDashboard();
+      // 扣减豆子：每张图片扣减1个豆子
+      useBeans(data.images.length, 'White BG Generate (' + data.images.length + ' images)');
+      refreshDashboard();
+      // 保存到 History
+      data.images.forEach(function(img) {
+        saveHistory({ product_name: 'White BG: ' + img.label, text: '', imageUrl: img.url, type: 'whitebg' });
+      });
       
       var grid = document.getElementById('whitebg-results-grid');
       grid.innerHTML = data.images.map(function(img, i) {
