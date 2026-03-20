@@ -506,5 +506,7 @@ async function callAI(apiKey, model, systemMsg, userMsg) {
   });
   const data = await res.json();
   if (data.output?.choices?.[0]?.message?.content) return data.output.choices[0].message.content;
-  throw new Error(data.message || 'AI API error');
+  // 详细的错误信息
+  const errorMsg = data.message || data.error?.message || JSON.stringify(data);
+  throw new Error(errorMsg);
 }
