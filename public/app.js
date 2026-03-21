@@ -1112,6 +1112,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========== AI Write Selling Points ==========
   var btnAiSelling = document.getElementById('btn-ai-selling-points');
+  if (!btnAiSelling) return;
+  btnAiSelling.addEventListener('click', async function() {
   if (btnAiSelling) btnAiSelling.onclick = async function() {
     var descEl = document.getElementById('ecom-product-desc');
     var spEl = document.getElementById('ecom-selling-points');
