@@ -1136,87 +1136,14 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         alert('AI Write failed: ' + (data.error || 'Unknown error'));
       }
+      } else {
+        alert('AI Write failed: ' + (data.error || 'Unknown error'));
+      }
     } catch (e) {
       alert('AI Write failed: ' + e.message);
+      console.error('AI Write error:', e);
     }
     btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
     btnAiSelling.disabled = false;
-  };
-
-  // ========== Batch Download ==========
-  function batchDownload(gridId) {
-    var grid = document.getElementById(gridId);
-    if (!grid) return;
-    var links = grid.querySelectorAll('a[download]');
-    links.forEach(function(a, i) {
-      setTimeout(function() { a.click(); }, i * 500);
-    });
-  }
-
-  var btnDlAllWhitebg = document.getElementById('btn-download-all-whitebg');
-  if (btnDlAllWhitebg) btnDlAllWhitebg.onclick = function() { batchDownload('whitebg-results-grid'); };
-
-  var btnDlAllEcom = document.getElementById('btn-download-all-ecom');
-  if (btnDlAllEcom) btnDlAllEcom.onclick = function() { batchDownload('ecom-results-grid'); };
-
-  // ========== Avatar Initials ==========
-  function getInitial() {
-    var user = getUser();
-    if (!user) return '?';
-    if (user.name) return user.name.charAt(0).toUpperCase();
-    if (user.email) return user.email.charAt(0).toUpperCase();
-    return '?';
-  }
-  function updateAvatars() {
-    document.querySelectorAll('.user-avatar-btn').forEach(function(btn) {
-      var initial = getInitial();
-      btn.innerHTML = '<span class="avatar-initial">' + initial + '</span>';
-    });
-  }
-
-  // ========== Generate Test History Data ==========
-  window.generateTestHistoryData = function() {
-    const testData = [
-      {
-        product_name: 'Handmade Silver Moon Necklace',
-        text: '🌙✨ Celestial Beauty | 40% OFF | Free Shipping\n\nSometimes the smallest things carry the biggest meaning. This delicate silver moon necklace captures the magic of starlit nights...',
-        type: 'copy',
-        date: new Date(Date.now() - 86400000 * 0.5).toISOString()
-      },
-      {
-        product_name: 'Personalized Birthstone Ring',
-        text: '💎🎁 Perfect Gift | New Arrival | Ready to Ship\n\nCelebrate her special day with a ring that tells her story. Each birthstone carries ancient wisdom...',
-        type: 'copy',
-        date: new Date(Date.now() - 86400000 * 1.2).toISOString()
-      },
-      {
-        product_name: 'Vintage Pearl Earrings Set',
-        text: '🦪✨ Timeless Elegance | Limited Edition\n\nPearls have adorned royalty for centuries. These vintage-inspired earrings bring that same regal charm...',
-        type: 'copy',
-        date: new Date(Date.now() - 86400000 * 2.5).toISOString()
-      },
-      {
-        product_name: 'Custom Engraved Bracelet',
-        text: '💫 Personal Touch | Best Seller | Gift Ready\n\nWords have power. When engraved on sterling silver, they become treasures...',
-        type: 'copy',
-        date: new Date(Date.now() - 86400000 * 3.1).toISOString()
-      },
-      {
-        product_name: 'Crystal Healing Pendant',
-        text: '🔮 Spiritual Wellness | Handmade | Free Gift Box\n\nMore than jewelry, this crystal pendant is a companion for your journey...',
-        type: 'copy',
-        date: new Date(Date.now() - 86400000 * 4.8).toISOString()
-      }
-    ];
-    
-    testData.forEach(item => saveHistory(item));
-    renderHistory();
-    alert('✅ Generated 5 test history items!');
-  };
-
-  // ========== Init ==========
-  const initUser = getUser();
-  updateAvatars();
-  if (initUser) showPage('dashboard');
-  else showPage('landing');
-});
+  });
+};
