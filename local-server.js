@@ -510,3 +510,70 @@ async function callAI(apiKey, model, systemMsg, userMsg) {
   const errorMsg = data.message || data.error?.message || JSON.stringify(data);
   throw new Error(errorMsg);
 }
+
+  // Batch Generate API
+  if (req.url === '/api/batch-generate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { imageBase64, prompt, ratio, count } = JSON.parse(body);
+        if (!imageBase64) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'Missing image' }));
+        }
+        
+        const doubaoKey = process.env.DOUbao_API_KEY;
+        if (!doubaoKey) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'Doubao API key not configured' }));
+        }
+        
+        // 根据比例设置尺寸
+        const sizeMap = { '1:1': '1024x1024', '3:4': '768x1024', '9:16': '576x1024', '16:9': '1024x576' };
+        const size = sizeMap[ratio] || '1024x1024';
+        
+        // 生成多个变体
+        const prompts = [
+          prompt + ', professional product photography, clean background, high quality',
+          prompt + ', lifestyle product shot, natural lighting, elegant composition',
+          prompt + ', product detail close-up, texture focus, professional lighting',
+          prompt + ', product in use, lifestyle context, modern setting',
+          prompt + ', artistic product shot, creative angle, premium feel',
+          prompt + ', minimalist product photography, clean aesthetic, professional'
+        ].slice(0, parseInt(count) || 4);
+        
+        const labels = ['Style 1', 'Style 2', 'Style 3', 'Style 4', 'Style 5', 'Style 6'].slice(0, prompts.length);
+        
+        const imagePromises = prompts.map((p, i) =>
+          fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${doubaoKey}` },
+            body: JSON.stringify({
+              model: 'doubao-seedream-5-0-260128',
+              prompt: p,
+              image: imageBase64,
+              size: size,
+              output_format: 'png',
+              watermark: false,
+              seed: Math.floor(Math.random() * 1000000)
+            })
+          }).then(r => r.json()).then(d => ({ data: d, label: labels[i] }))
+        );
+        
+        const results = await Promise.all(imagePromises);
+        const images = results.filter(r => r.data.data?.[0]?.url).map(r => ({
+          url: r.data.data[0].url,
+          label: r.label
+        }));
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, images }));
+      } catch (e) {
+        console.error('Batch generate error:', e);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }

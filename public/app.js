@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modeSmart: document.getElementById('mode-smart'),
     modeWhitebg: document.getElementById('mode-whitebg'),
     modeEcom: document.getElementById('mode-ecom'),
+    modeBatch: document.getElementById('mode-batch'),
     modeCsv: document.getElementById('mode-csv'),
     modeHistory: document.getElementById('mode-history'),
     imageSection: document.getElementById('image-section'),
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
       lastModeResults[prevMode] = el.resultContent.innerHTML;
     }
 
-    ['image', 'smart', 'whitebg', 'ecom', 'csv', 'history'].forEach(m => {
+    ['image', 'smart', 'whitebg', 'ecom', 'batch', 'csv', 'history'].forEach(m => {
       const btn = document.getElementById('mode-' + m);
       const sec = document.getElementById(m + '-section');
       if (btn) btn.classList.toggle('active', m === mode);
@@ -288,6 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
   el.modeSmart.addEventListener('click', () => switchMode('smart'));
   el.modeWhitebg.addEventListener('click', () => switchMode('whitebg'));
   el.modeEcom.addEventListener('click', () => switchMode('ecom'));
+  el.modeBatch.addEventListener('click', () => switchMode('batch'));
   el.modeCsv.addEventListener('click', () => switchMode('csv'));
   el.modeHistory.addEventListener('click', () => switchMode('history'));
 
@@ -897,6 +899,7 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (el.modeSmart.classList.contains('active')) switchMode('smart');
     else if (el.modeWhitebg.classList.contains('active')) switchMode('whitebg');
     else if (el.modeEcom.classList.contains('active')) switchMode('ecom');
+    else if (el.modeBatch.classList.contains('active')) switchMode('batch');
     else if (el.modeCsv.classList.contains('active')) switchMode('csv');
     else if (el.modeHistory.classList.contains('active')) switchMode('history');
     else switchMode('image');
@@ -1146,4 +1149,256 @@ document.addEventListener('DOMContentLoaded', function () {
     btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
     btnAiSelling.disabled = false;
   });
+};
+
+// ========== Batch Generate Functions ==========
+window._batchImages = [];
+window._batchRatio = '1:1';
+
+window.handleBatchUpload = function(files) {
+  if (!files || files.length === 0) return;
+  
+  const maxFiles = 10;
+  const remainingSlots = maxFiles - window._batchImages.length;
+  const filesToAdd = Math.min(files.length, remainingSlots);
+  
+  if (files.length > remainingSlots) {
+    alert('Maximum 10 images allowed. Only first ' + filesToAdd + ' images will be added.');
+  }
+  
+  Array.from(files).slice(0, filesToAdd).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      window._batchImages.push({
+        name: file.name,
+        dataUrl: e.target.result,
+        id: Date.now() + Math.random()
+      });
+      updateBatchPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.updateBatchPreview = function() {
+  const list = document.getElementById('batch-image-list');
+  const count = document.getElementById('batch-count');
+  const preview = document.getElementById('batch-preview');
+  
+  count.textContent = window._batchImages.length;
+  
+  if (window._batchImages.length > 0) {
+    preview.classList.remove('hidden');
+  }
+  
+  list.innerHTML = window._batchImages.map((img, idx) => `
+    <div class="batch-image-item">
+      <img src="${img.dataUrl}" alt="${img.name}">
+      <span class="batch-image-name">${img.name}</span>
+      <button class="batch-remove-btn" onclick="removeBatchImage(${idx})">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `).join('');
+};
+
+window.removeBatchImage = function(idx) {
+  window._batchImages.splice(idx, 1);
+  updateBatchPreview();
+};
+
+window.selectBatchRatio = function(btn) {
+  document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window._batchRatio = btn.dataset.ratio;
+};
+
+window.generateBatchImages = async function() {
+  if (window._batchImages.length === 0) {
+    alert('Please upload at least one image');
+    return;
+  }
+  
+  const prompt = document.getElementById('batch-prompt').value.trim();
+  const countPerImage = parseInt(document.getElementById('batch-count-select').value);
+  
+  const btn = document.getElementById('btn-generate-batch');
+  const loading = document.getElementById('batch-loading');
+  const results = document.getElementById('batch-results');
+  const progressBar = document.getElementById('batch-progress-bar');
+  const currentEl = document.getElementById('batch-current');
+  const totalEl = document.getElementById('batch-total');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+  loading.classList.remove('hidden');
+  results.classList.add('hidden');
+  
+  const totalImages = window._batchImages.length * countPerImage;
+  totalEl.textContent = totalImages;
+  
+  const allResults = [];
+  let completed = 0;
+  
+  for (let i = 0; i < window._batchImages.length; i++) {
+    const img = window._batchImages[i];
+    try {
+      const res = await fetch('/api/batch-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: img.dataUrl,
+          prompt: prompt,
+          ratio: window._batchRatio,
+          count: countPerImage
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success && data.images) {
+        data.images.forEach((generatedImg, idx) => {
+          allResults.push({
+            originalName: img.name,
+            imageUrl: generatedImg.url,
+            label: generatedImg.label || `Image ${idx + 1}`
+          });
+        });
+        
+        // 扣减豆子
+        useBeans(countPerImage, 'Batch Generate: ' + img.name);
+      }
+    } catch (e) {
+      console.error('Failed to generate for ' + img.name, e);
+    }
+    
+    completed += countPerImage;
+    currentEl.textContent = completed;
+    progressBar.style.width = (completed / totalImages * 100) + '%';
+  }
+  
+  refreshDashboard();
+  displayBatchResults(allResults);
+  
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-magic"></i> Generate All Images';
+  loading.classList.add('hidden');
+};
+
+window.displayBatchResults = function(results) {
+  const grid = document.getElementById('batch-results-grid');
+  const section = document.getElementById('batch-results');
+  
+  grid.innerHTML = results.map((img, idx) => `
+    <div class="batch-result-item">
+      <img src="${img.imageUrl}" alt="${img.label}">
+      <div class="batch-result-info">
+        <span>${img.originalName}</span>
+        <span>${img.label}</span>
+      </div>
+      <a href="${img.imageUrl}" download class="batch-download-btn">
+        <i class="fas fa-download"></i>
+      </a>
+    </div>
+  `).join('');
+  
+  section.classList.remove('hidden');
+};
+
+window.downloadAllBatchImages = async function() {
+  const images = document.querySelectorAll('.batch-result-item img');
+  for (let i = 0; i < images.length; i++) {
+    const link = document.createElement('a');
+    link.href = images[i].src;
+    link.download = 'batch-image-' + (i + 1) + '.png';
+    link.click();
+    await new Promise(r => setTimeout(r, 500));
+  }
+};
+
+// ========== Batch Generate Functions ==========
+window._batchImages = [];
+window._batchRatio = '1:1';
+
+window.handleBatchUpload = function(files) {
+  if (!files || files.length === 0) return;
+  const maxFiles = 10;
+  const remainingSlots = maxFiles - window._batchImages.length;
+  const filesToAdd = Math.min(files.length, remainingSlots);
+  if (files.length > remainingSlots) {
+    alert('Maximum 10 images allowed. Only first ' + filesToAdd + ' images will be added.');
+  }
+  Array.from(files).slice(0, filesToAdd).forEach(function(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      window._batchImages.push({ name: file.name, dataUrl: e.target.result, id: Date.now() + Math.random() });
+      updateBatchPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.updateBatchPreview = function() {
+  const list = document.getElementById('batch-image-list');
+  const count = document.getElementById('batch-count');
+  const preview = document.getElementById('batch-preview');
+  count.textContent = window._batchImages.length;
+  if (window._batchImages.length > 0) preview.classList.remove('hidden');
+  list.innerHTML = window._batchImages.map(function(img, idx) {
+    return '<div class="batch-image-item"><img src="' + img.dataUrl + '" alt="' + img.name + '"><span class="batch-image-name">' + img.name + '</span><button class="batch-remove-btn" onclick="removeBatchImage(' + idx + ')"><i class="fas fa-times"></i></button></div>';
+  }).join('');
+};
+
+window.removeBatchImage = function(idx) {
+  window._batchImages.splice(idx, 1);
+  updateBatchPreview();
+};
+
+window.selectBatchRatio = function(btn) {
+  document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  window._batchRatio = btn.dataset.ratio;
+};
+// Batch functions placeholder
+// ========== Batch Generate Functions ==========
+window._batchImages = [];
+window._batchRatio = '1:1';
+
+window.handleBatchUpload = function(files) {
+  if (!files || files.length === 0) return;
+  const maxFiles = 10;
+  const remainingSlots = maxFiles - window._batchImages.length;
+  const filesToAdd = Math.min(files.length, remainingSlots);
+  if (files.length > remainingSlots) {
+    alert('Maximum 10 images allowed. Only first ' + filesToAdd + ' images will be added.');
+  }
+  Array.from(files).slice(0, filesToAdd).forEach(function(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      window._batchImages.push({ name: file.name, dataUrl: e.target.result, id: Date.now() + Math.random() });
+      updateBatchPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+window.updateBatchPreview = function() {
+  const list = document.getElementById('batch-image-list');
+  const count = document.getElementById('batch-count');
+  const preview = document.getElementById('batch-preview');
+  count.textContent = window._batchImages.length;
+  if (window._batchImages.length > 0) preview.classList.remove('hidden');
+  list.innerHTML = window._batchImages.map(function(img, idx) {
+    return '<div class="batch-image-item"><img src="' + img.dataUrl + '" alt="' + img.name + '"><span class="batch-image-name">' + img.name + '</span><button class="batch-remove-btn" onclick="removeBatchImage(' + idx + ')"><i class="fas fa-times"></i></button></div>';
+  }).join('');
+};
+
+window.removeBatchImage = function(idx) {
+  window._batchImages.splice(idx, 1);
+  updateBatchPreview();
+};
+
+window.selectBatchRatio = function(btn) {
+  document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  window._batchRatio = btn.dataset.ratio;
 };
