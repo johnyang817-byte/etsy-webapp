@@ -54,7 +54,7 @@ Return ONLY valid JSON.`);
 
         if (serperKey) {
             try {
-                const pages = [0, 20, 40, 60, 80];
+                const pages = [0, 20];
                 const allResults = [];
                 for (const start of pages) {
                     const r = await fetch('https://google.serper.dev/search', {

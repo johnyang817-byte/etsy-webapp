@@ -1,0 +1,1207 @@
+// ListingPaw AI - app.js (4 modules: Image Upload, Smart Generate, CSV Bulk, History)
+document.addEventListener('DOMContentLoaded', function () {
+  // ========== 页面路由 ==========
+  window.showPage = function (page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + page).classList.remove('hidden');
+    if (page === 'dashboard') refreshDashboard();
+    if (page === 'settings') {
+      refreshDashboard();
+      var user = getUser();
+      if (user) {
+        var sn = document.getElementById('settings-name'); if (sn) sn.value = user.name || '';
+        var se = document.getElementById('settings-email'); if (se) se.value = user.email || '';
+        var sb = document.getElementById('settings-beans-balance'); if (sb) sb.textContent = getBeans();
+        var sbc = document.getElementById('settings-beans-count'); if (sbc) sbc.textContent = getBeans();
+        var sdn = document.getElementById('settings-dropdown-name'); if (sdn) sdn.textContent = user.name || user.email?.split('@')[0] || 'User';
+        var sde = document.getElementById('settings-dropdown-email'); if (sde) sde.textContent = user.email || '';
+      }
+    }
+    updateLandingNav();
+    window.scrollTo(0, 0);
+  };
+
+  window.goToApp = function () {
+    showPage(getUser() ? 'dashboard' : 'signup');
+  };
+
+  function updateLandingNav() {
+    var user = getUser();
+    var loggedIn = !!user;
+    var loginBtn = document.getElementById('landing-btn-login'); if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
+    var signupBtn = document.getElementById('landing-btn-signup'); if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+    var userArea = document.getElementById('landing-user-area'); if (userArea) userArea.classList.toggle('hidden', !loggedIn);
+    if (loggedIn && user) {
+      var lb = document.getElementById('landing-beans-count'); if (lb) lb.textContent = getBeans();
+      var ldn = document.getElementById('landing-dropdown-name'); if (ldn) ldn.textContent = user.name || (user.email ? user.email.split('@')[0] : 'User');
+      var lde = document.getElementById('landing-dropdown-email'); if (lde) lde.textContent = user.email || '';
+      var ldb = document.getElementById('landing-dropdown-beans'); if (ldb) ldb.textContent = getBeans();
+    }
+  }
+
+  // ========== 用户系统 ==========
+  const AUTH_KEY = 'listingpaw_user';
+
+  function getUserKey(suffix) {
+    const user = getUser();
+    return 'listingpaw_' + (user?.email || 'guest') + '_' + suffix;
+  }
+
+  function getUser() { try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; } }
+  function setUser(user) { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); }
+
+  function getHistory() { try { return JSON.parse(localStorage.getItem(getUserKey('history'))) || []; } catch { return []; } }
+  function saveHistory(item) {
+    const h = getHistory();
+    h.unshift({ ...item, date: new Date().toISOString() });
+    if (h.length > 200) h.length = 200;
+    localStorage.setItem(getUserKey('history'), JSON.stringify(h));
+  }
+
+  // ========== Beans System ==========
+  function getBeans() {
+    var b = localStorage.getItem(getUserKey('beans'));
+    if (b === null) { setBeans(20); logBeanTransaction('gift', 20, 'Welcome bonus'); return 20; }
+    return parseInt(b) || 0;
+  }
+  function setBeans(n) { localStorage.setItem(getUserKey('beans'), String(n)); }
+  function useBeans(n, desc) {
+    var current = getBeans();
+    if (current < n) return false;
+    setBeans(current - n);
+    logBeanTransaction('use', -n, desc || 'Generation');
+    return true;
+  }
+  function logBeanTransaction(type, amount, desc) {
+    var logs = JSON.parse(localStorage.getItem(getUserKey('bean_logs')) || '[]');
+    logs.unshift({ type: type, amount: amount, desc: desc, date: new Date().toISOString(), balance: getBeans() });
+    if (logs.length > 100) logs.length = 100;
+    localStorage.setItem(getUserKey('bean_logs'), JSON.stringify(logs));
+  }
+  function getBeanLogs() { return JSON.parse(localStorage.getItem(getUserKey('bean_logs')) || '[]'); }
+  function canGenerate() { return getBeans() > 0; }
+  function getPlan() { return 'standard'; }
+  function getUsage() {
+    const d = JSON.parse(localStorage.getItem(getUserKey('usage')) || '{}');
+    const m = new Date().toISOString().slice(0, 7);
+    return d.month === m ? d : { month: m, count: 0 };
+  }
+  function useBeans(n) {
+    const u = getUsage(); u.count++;
+    localStorage.setItem(getUserKey('usage'), JSON.stringify(u));
+    return u;
+  }
+
+  function getPlan() { return getUser()?.plan || 'free'; }
+  function getLimit() { const p = getPlan(); return p === 'unlimited' ? Infinity : p === 'pro' ? 100 : 20; }
+  function canGenerate() { return getUsage().count < getLimit(); }
+
+  function getSavedPrompts() { try { return JSON.parse(localStorage.getItem(getUserKey('prompts'))) || {}; } catch { return {}; } }
+  function getCustomPrompts() {
+    const saved = getSavedPrompts();
+    const result = {};
+    ['title', 'description', 'tags', 'attributes'].forEach(k => {
+      const v = saved[k];
+      const text = typeof v === 'string' ? v : (v?.text || '');
+      if (text.trim()) result[k] = text.trim();
+    });
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
+  // ========== 注册 ==========
+  document.getElementById('signup-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value.trim();
+    const pw = document.getElementById('signup-password').value;
+    const confirm = document.getElementById('signup-confirm').value;
+    if (pw !== confirm) { alert('Passwords do not match'); return; }
+    if (pw.length < 6) { alert('Password must be at least 6 characters'); return; }
+    const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
+    if (users[email]) { alert('Email already registered'); return; }
+    users[email] = { password: pw, plan: 'free' };
+    localStorage.setItem('listingpaw_users', JSON.stringify(users));
+    setUser({ email, plan: 'free' });
+    showPage('dashboard');
+  });
+
+  // ========== 登录 ==========
+  document.getElementById('login-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const pw = document.getElementById('login-password').value;
+    const users = JSON.parse(localStorage.getItem('listingpaw_users') || '{}');
+    if (!users[email] || users[email].password !== pw) { alert('Invalid email or password'); return; }
+    setUser({ email, plan: users[email].plan || 'free' });
+    showPage('dashboard');
+  });
+
+  // ========== 登出 ==========
+  // Settings page
+  window.showSettingsTab = function(tab) {
+    ['profile','billing','beans'].forEach(function(t) {
+      var el = document.getElementById('settings-' + t);
+      if (el) el.classList.toggle('hidden', t !== tab);
+    });
+    // Render billing history
+    if (tab === 'billing') {
+      var tbody = document.getElementById('billing-history-body');
+      if (tbody) {
+        var logs = getBeanLogs();
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="billing-empty">No transaction history</td></tr>';
+        } else {
+          tbody.innerHTML = logs.map(function(log) {
+            var d = new Date(log.date);
+            var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            var amountClass = log.amount > 0 ? 'color:#16a34a;' : 'color:#ef4444;';
+            var amountStr = log.amount > 0 ? '+' + log.amount : String(log.amount);
+            var typeStr = log.type === 'gift' ? 'Gift' : log.type === 'purchase' ? 'Purchase' : 'Usage';
+            var statusStr = log.type === 'gift' ? '<span style="color:#16a34a;">Credited</span>' : '<span style="color:#ef4444;">Deducted</span>';
+            return '<tr><td>' + (log.desc || '-') + '</td><td>' + typeStr + '</td><td>' + statusStr + '</td><td style="' + amountClass + 'font-weight:600;">' + amountStr + '</td><td>' + dateStr + '</td></tr>';
+          }).join('');
+        }
+      }
+    }
+    document.querySelectorAll('.settings-nav-item').forEach(function(btn) { btn.classList.remove('active'); });
+    event.target.closest('.settings-nav-item')?.classList.add('active');
+    // Update beans display
+    var sb = document.getElementById('settings-beans-balance'); if (sb) sb.textContent = getBeans();
+    var sbc = document.getElementById('settings-beans-count'); if (sbc) sbc.textContent = getBeans();
+    // Update profile fields
+    var user = getUser();
+    if (user) {
+      var sn = document.getElementById('settings-name'); if (sn) sn.value = user.name || '';
+      var se = document.getElementById('settings-email'); if (se) se.value = user.email || '';
+    }
+  };
+
+  // Save profile
+  var btnSaveProfile = document.getElementById('btn-save-profile');
+  if (btnSaveProfile) btnSaveProfile.onclick = function() {
+    var user = getUser();
+    if (!user) return;
+    var newName = document.getElementById('settings-name')?.value?.trim();
+    if (newName && newName.length >= 3 && newName.length <= 30) {
+      user.name = newName;
+      setUser(user);
+      refreshDashboard();
+      updateLandingNav();
+      updateAvatars();
+      alert('Profile saved!');
+    } else {
+      alert('Name must be 3-30 characters');
+    }
+  };
+
+  // Landing logout
+  var landingLogoutBtn = document.getElementById('landing-btn-logout');
+  if (landingLogoutBtn) landingLogoutBtn.onclick = function() { doLogout(); };
+
+  function doLogout() { localStorage.removeItem(AUTH_KEY); updateLandingNav(); showPage('landing'); }
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
+  document.getElementById('landing-btn-logout').addEventListener('click', doLogout);
+
+  // ========== Dashboard 刷新 ==========
+  function refreshDashboard() {
+    var user = getUser();
+    if (!user) return;
+    var beans = getBeans();
+    var bc = document.getElementById('beans-count'); if (bc) bc.textContent = beans;
+    var db = document.getElementById('dropdown-beans'); if (db) db.textContent = beans;
+    var dn = document.getElementById('dropdown-name'); if (dn) dn.textContent = user.name || (user.email ? user.email.split('@')[0] : 'User');
+    var de = document.getElementById('dropdown-email'); if (de) de.textContent = user.email || '';
+    updateAvatars();
+  }
+
+  window.toggleUserMenu = function() {
+    document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.toggle('hidden'); });
+  };
+  window.closeUserMenu = function() {
+    document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.add('hidden'); });
+  };
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.user-menu-wrapper')) {
+      document.querySelectorAll('.user-dropdown').forEach(function(dd) { dd.classList.add('hidden'); });
+    }
+  });
+
+  // ========== DOM 元素 ==========
+  const el = {
+    modeImage: document.getElementById('mode-image'),
+    modeSmart: document.getElementById('mode-smart'),
+    modeWhitebg: document.getElementById('mode-whitebg'),
+    modeEcom: document.getElementById('mode-ecom'),
+    modeCsv: document.getElementById('mode-csv'),
+    modeHistory: document.getElementById('mode-history'),
+    imageSection: document.getElementById('image-section'),
+    smartSection: document.getElementById('smart-section'),
+    whitebgSection: document.getElementById('whitebg-section'),
+    ecomSection: document.getElementById('ecom-section'),
+    csvSection: document.getElementById('csv-section'),
+    historySection: document.getElementById('history-section'),
+    generateSection: document.getElementById('generate-section'),
+    generateAllBtn: document.getElementById('generate-all'),
+    dropZone: document.getElementById('drop-zone'),
+    csvInput: document.getElementById('csv-input'),
+    fileName: document.getElementById('file-name'),
+    csvPreview: document.getElementById('csv-preview'),
+    productList: document.getElementById('product-list'),
+    productCount: document.getElementById('product-count'),
+    loading: document.getElementById('loading'),
+    resultSection: document.getElementById('result-section'),
+    resultContent: document.getElementById('result-content'),
+    backBtn: document.getElementById('back-btn')
+  };
+
+  let csvProducts = [];
+
+  // ========== 模式切换 ==========
+  let lastModeResults = {}; // store result HTML per mode
+
+  window.switchMode = function(mode) {
+    // Save current result if visible
+    var prevMode = document.querySelector('.mode-btn.active')?.id?.replace('mode-','');
+    if (prevMode && !el.resultSection.classList.contains('hidden')) {
+      lastModeResults[prevMode] = el.resultContent.innerHTML;
+    }
+
+    ['image', 'smart', 'whitebg', 'ecom', 'csv', 'history'].forEach(m => {
+      const btn = document.getElementById('mode-' + m);
+      const sec = document.getElementById(m + '-section');
+      if (btn) btn.classList.toggle('active', m === mode);
+      if (sec) sec.classList.toggle('hidden', m !== mode);
+    });
+    el.generateSection.classList.add('hidden');
+
+    // Restore results if this mode had them
+    if (lastModeResults[mode]) {
+      el.resultContent.innerHTML = lastModeResults[mode];
+      el.resultSection.classList.remove('hidden');
+    } else {
+      el.resultSection.classList.add('hidden');
+    }
+
+    if (mode === 'csv' && csvProducts.length > 0) {
+      el.csvPreview.classList.remove('hidden');
+      el.generateSection.classList.remove('hidden');
+    }
+    if (mode === 'history') renderHistory();
+  }
+
+  el.modeImage.addEventListener('click', () => switchMode('image'));
+  el.modeSmart.addEventListener('click', () => switchMode('smart'));
+  el.modeWhitebg.addEventListener('click', () => switchMode('whitebg'));
+  el.modeEcom.addEventListener('click', () => switchMode('ecom'));
+  el.modeCsv.addEventListener('click', () => switchMode('csv'));
+  el.modeHistory.addEventListener('click', () => switchMode('history'));
+
+  // ========== CSV 上传 ==========
+  el.dropZone.addEventListener('click', function() { el.csvInput.value = ''; el.csvInput.click(); });
+  el.csvInput.addEventListener('change', function() { if (this.files.length) handleCsvFile(this.files[0]); });
+  el.dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+  el.dropZone.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+  el.dropZone.addEventListener('drop', function(e) {
+    e.preventDefault(); this.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
+  });
+
+  let csvProductSelected = [];
+
+  async function handleCsvFile(file) {
+    window._handleCsvFile = handleCsvFile; // expose for inline onchange
+    if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file'); return; }
+    el.fileName.textContent = file.name;
+    try {
+      let text = await file.text();
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { alert('CSV file is empty or invalid'); return; }
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      csvProducts = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const row = {}; headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+        const product = {
+          product_name: (row['product_name_en'] || row['product_name'] || row['Product Name'] || row['product_name_cn'] || '').trim(),
+          keywords: [row['keywords'], row['technique'], row['target_audience'], row['usage_scene']].filter(Boolean).join(', '),
+          material: (row['material'] || '').trim(), size: (row['size'] || '').trim(),
+          color: (row['color'] || '').trim(), occasion: (row['occasion'] || row['usage_scene'] || '').trim()
+        };
+        if (product.product_name) csvProducts.push(product);
+      }
+      if (csvProducts.length === 0) { alert('No valid products found in CSV'); return; }
+      csvProductSelected = csvProducts.map(() => true);
+      renderProductList();
+      el.csvPreview.classList.remove('hidden');
+      el.generateSection.classList.remove('hidden');
+      updateSelectedCount();
+    } catch (err) { alert('CSV parse error: ' + err.message); }
+  }
+
+  function renderProductList() {
+    el.productList.innerHTML =
+      `<div class="product-select-all">
+        <label><input type="checkbox" id="select-all-cb" ${csvProductSelected.every(Boolean) ? 'checked' : ''} onchange="toggleSelectAll(this.checked)"> Select All (${csvProducts.length})</label>
+        <button class="btn-reupload" onclick="document.getElementById('csv-input').value='';document.getElementById('csv-input').click()"><i class="fas fa-sync-alt"></i> Re-upload</button>
+      </div>` +
+      csvProducts.map((p, i) =>
+        `<div class="product-item ${csvProductSelected[i] ? '' : 'product-unchecked'}" onclick="toggleProduct(${i})">
+          <input type="checkbox" ${csvProductSelected[i] ? 'checked' : ''} onclick="event.stopPropagation();toggleProduct(${i})">
+          <span>${escapeHtml(p.product_name)}</span>
+        </div>`
+      ).join('');
+  }
+
+  window.toggleProduct = function(i) { csvProductSelected[i] = !csvProductSelected[i]; renderProductList(); updateSelectedCount(); };
+  window.toggleSelectAll = function(checked) { csvProductSelected = csvProductSelected.map(() => checked); renderProductList(); updateSelectedCount(); };
+  function updateSelectedCount() {
+    const c = csvProductSelected.filter(Boolean).length;
+    el.productCount.textContent = c;
+    el.generateAllBtn.disabled = c === 0;
+  }
+  function getSelectedProducts() { return csvProducts.filter((_, i) => csvProductSelected[i]); }
+
+  // ========== CSV 批量生成 ==========
+  el.generateAllBtn.addEventListener('click', async () => {
+    const selected = getSelectedProducts();
+    if (selected.length === 0) { alert('No products selected'); return; }
+    const remaining = getLimit() - getUsage().count;
+    if (remaining <= 0) { alert('Monthly limit reached. Please upgrade.'); return; }
+    const toGen = selected.slice(0, remaining);
+    if (toGen.length < selected.length && !confirm(`You can only generate ${remaining} more. Continue?`)) return;
+    showLoading(true);
+    const results = [];
+    for (const product of toGen) {
+      const result = await callApi(product);
+      if (!result.error) { useBeans(1, 'Smart Generate'); saveHistory({ product_name: product.product_name, text: result.text }); }
+      results.push(result);
+    }
+    refreshDashboard(); showResults(results); showLoading(false);
+  });
+
+  // ========== API 调用 ==========
+  async function callApi(product) {
+    try {
+      const customPrompts = getCustomPrompts();
+      const body = { product };
+      if (customPrompts) body.customPrompts = customPrompts;
+      const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+      return { product, text: data.text };
+    } catch (err) { return { product, error: err.message }; }
+  }
+
+  // ========== Smart Generate ==========
+  document.getElementById('btn-smart-generate').addEventListener('click', async () => {
+    if (!canGenerate()) { alert('Not enough beans! Please buy more.'); return; }
+    const keyword = document.getElementById('smart-keyword').value.trim();
+    if (!keyword) { alert('Please enter a search keyword'); return; }
+    const productInfo = {
+      product_name: document.getElementById('smart-product-name').value.trim() || keyword,
+      material: document.getElementById('smart-material').value.trim(),
+      color: document.getElementById('smart-color').value.trim(),
+      occasion: document.getElementById('smart-occasion').value.trim()
+    };
+    const progress = document.getElementById('smart-progress');
+    const report = document.getElementById('smart-report');
+    const sources = document.getElementById('smart-sources');
+    progress.classList.remove('hidden'); report.classList.add('hidden'); sources.classList.add('hidden'); el.resultSection.classList.add('hidden');
+
+    setSmartStep('search', 'active', 'Searching...'); setSmartStep('trends', '', 'waiting'); setSmartStep('analyze', '', 'waiting'); setSmartStep('generate', '', 'waiting');
+
+    try {
+      setTimeout(() => { setSmartStep('search', 'done', 'Multi-source search complete'); setSmartStep('trends', 'active', 'Fetching...'); }, 2000);
+      setTimeout(() => { setSmartStep('trends', 'done', 'Trends data loaded'); setSmartStep('analyze', 'active', 'Analyzing...'); }, 4000);
+      setTimeout(() => { setSmartStep('analyze', 'done', 'Analysis complete'); setSmartStep('generate', 'active', 'Generating...'); }, 7000);
+
+    const customPrompts = getCustomPrompts();
+    const userCustomPrompt = document.getElementById('smart-custom-prompt')?.value?.trim() || '';
+    const res = await fetch('/api/smart-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, productInfo, customPrompts, userCustomPrompt }) });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Smart generation failed');
+
+      setSmartStep('search', 'done', `Etsy: ${data.competitorCount} | Shopping: ${data.shoppingCount || 0} | Amazon: ${data.amazonCount || 0}`);
+      setSmartStep('trends', 'done', data.trendsData ? `${data.trendsData.trend_direction} (${data.trendsData.avg_interest}/100)` : 'No data');
+      setSmartStep('analyze', 'done', 'Analysis complete');
+      setSmartStep('generate', 'done', 'Listing generated!');
+
+      // Show data sources
+      if (data.dataSources) {
+        const srcHtml = Object.entries(data.dataSources).map(([k, v]) => {
+          const icon = v.status === 'ok' ? '✅' : '⚠️';
+          const name = { etsy_search: 'Etsy Search', google_shopping: 'Google Shopping', amazon: 'Amazon', google_trends: 'Google Trends' }[k] || k;
+          const detail = v.count !== undefined ? `${v.count} results` : (v.direction || '');
+          return `<span class="source-badge">${icon} ${name} ${detail ? '(' + detail + ')' : ''}</span>`;
+        }).join('');
+        document.getElementById('smart-sources-content').innerHTML = `<strong>Data Sources:</strong> ${srcHtml}`;
+        sources.classList.remove('hidden');
+      }
+
+      if (data.competitorReport) { document.getElementById('smart-report-content').textContent = data.competitorReport; report.classList.remove('hidden'); }
+      useBeans(1, 'Smart Generate'); saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' }); refreshDashboard();
+      showResults([{ product: productInfo, text: data.listing }]);
+    } catch (err) {
+      setSmartStep('generate', '', 'Failed: ' + err.message);
+      alert('Smart Generate failed: ' + err.message);
+    }
+  });
+
+  function setSmartStep(step, state, statusText) {
+    const e = document.getElementById('step-' + step);
+    const s = document.getElementById('step-' + step + '-status');
+    if (e) e.className = 'smart-step' + (state ? ' ' + state : '');
+    if (s && statusText !== undefined) s.textContent = statusText;
+  }
+
+  // ========== Image Upload ==========
+  // window._uploadedImages managed by global-handlers.js
+  // // managed by global-handlers.js
+  window._uploadedImages = [];
+  // const document.getElementById('img-preview-area') = document.getElementById('img-preview-area');
+  // const document.getElementById('img-preview-grid') = document.getElementById('img-preview-grid');
+  // const document.getElementById('img-extra-fields') = document.getElementById('img-extra-fields');
+
+  // Use inline onclick in HTML instead - more reliable across browsers
+  document.getElementById('btn-add-more-img').addEventListener('click', () => { document.getElementById('img-input').value = ''; document.getElementById('img-input').click(); });
+
+  function handleImageFiles(files) {
+    window._handleImgFiles = handleImageFiles; // expose for inline onchange
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB): ' + file.name); continue; }
+      if (window._uploadedImages.length >= 5) { alert('Maximum 5 images'); break; }
+      const reader = new FileReader();
+      reader.onload = e => { window._uploadedImages.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function renderImagePreviews() {
+    if ((window._uploadedImages||[]).length === 0) {
+      var pa = document.getElementById('img-preview-area'); if (pa) pa.classList.add('hidden');
+      var rs = document.getElementById('img-review-section'); if (rs) rs.classList.add('hidden');
+      var ef = document.getElementById('img-extra-fields'); if (ef) ef.classList.add('hidden');
+      var dz = document.getElementById('img-drop-zone'); if (dz) dz.style.display = '';
+      return;
+    }
+    var dz2 = document.getElementById('img-drop-zone'); if (dz2) dz2.style.display = 'none';
+    var pa2 = document.getElementById('img-preview-area'); if (pa2) pa2.classList.remove('hidden');
+    var rs2 = document.getElementById('img-review-section'); if (rs2) rs2.classList.remove('hidden');
+    var ef2 = document.getElementById('img-extra-fields'); if (ef2) ef2.classList.remove('hidden');
+    var pg = document.getElementById('img-preview-grid');
+    if (pg) pg.innerHTML = window._uploadedImages.map((img, i) =>
+      `<div class="img-thumb"><img src="${img.dataUrl}" alt="Product ${i+1}"><button class="img-thumb-remove" onclick="removeImage(${i})"><i class="fas fa-xmark"></i></button></div>`
+    ).join('');
+  }
+
+  window.removeImage = function(i) { window._uploadedImages.splice(i, 1); renderImagePreviews(); };
+
+  // Toggle buttons (Yes/No)
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const field = btn.dataset.field;
+      const value = btn.dataset.value;
+      document.getElementById(field).value = value;
+      btn.closest('.toggle-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // ========== Step 1: Identify Product ==========
+  document.getElementById('btn-identify-product').addEventListener('click', async () => {
+    if (window._(window._uploadedImages||[]).length === 0) { alert('Please upload at least one image'); return; }
+
+    const idProgress = document.getElementById('img-identify-progress');
+    const idStep = document.getElementById('img-id-step');
+    const idStatus = document.getElementById('img-id-step-status');
+    document.getElementById('img-identify-section').classList.add('hidden');
+    idProgress.classList.remove('hidden');
+    idStep.className = 'smart-step active';
+    idStatus.textContent = 'Analyzing image...';
+
+    try {
+      const res = await fetch('/api/image-identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: window._uploadedImages[0].dataUrl })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Identification failed');
+
+      idStep.className = 'smart-step done';
+      idStatus.textContent = 'Product identified!';
+
+      // Fill form with AI results
+      const id = data.identified || {};
+      document.getElementById('img-product-name').value = id.product_name || '';
+      document.getElementById('img-category').value = id.category || '';
+      document.getElementById('img-material').value = id.material || '';
+      document.getElementById('img-style').value = id.color || id.style || '';
+      document.getElementById('img-keywords').value = id.keywords || '';
+
+      // Show review section
+      document.getElementById('img-review-section').classList.remove('hidden');
+      document.getElementById('img-review-section').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      idStep.className = 'smart-step';
+      idStatus.textContent = 'Failed: ' + err.message;
+      alert('Identification failed: ' + err.message);
+      document.getElementById('img-identify-section').classList.remove('hidden');
+    }
+  });
+
+  // ========== Step 2: Generate from reviewed info ==========
+  document.getElementById('btn-generate-from-img').addEventListener('click', async () => {
+    if (!canGenerate()) { alert('Not enough beans! Please buy more.'); return; }
+
+    const productInfo = {
+      product_name: document.getElementById('img-product-name').value.trim(),
+      category: document.getElementById('img-category').value.trim(),
+      material: document.getElementById('img-material').value.trim(),
+      style: document.getElementById('img-style').value.trim(),
+      adjustable: document.getElementById('img-adjustable').value,
+      customizable: document.getElementById('img-customizable').value,
+      keywords: document.getElementById('img-keywords').value.trim(),
+      notes: document.getElementById('img-notes').value.trim()
+    };
+
+    if (!productInfo.product_name) { alert('Please enter a product name'); return; }
+
+    // Hide review, show generation progress
+    document.getElementById('img-review-section').classList.add('hidden');
+    const progress = document.getElementById('img-progress');
+    const report = document.getElementById('img-report');
+    progress.classList.remove('hidden');
+    report.classList.add('hidden');
+    el.resultSection.classList.add('hidden');
+
+    setImgStep('search', 'active', 'Searching...');
+    setImgStep('analyze', '', 'waiting');
+    setImgStep('generate', '', 'waiting');
+
+    try {
+      setTimeout(() => { setImgStep('search', 'done', 'Search complete'); setImgStep('analyze', 'active', 'Analyzing...'); }, 3000);
+      setTimeout(() => { setImgStep('analyze', 'done', 'Analysis complete'); setImgStep('generate', 'active', 'Generating...'); }, 6000);
+
+      const customPrompts = getCustomPrompts();
+      const body = { productInfo, customPrompts };
+      const res = await fetch('/api/smart-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword: productInfo.keywords?.split(',')[0]?.trim() || productInfo.product_name,
+          productInfo: {
+            product_name: productInfo.product_name,
+            material: productInfo.material,
+            color: productInfo.style,
+            occasion: '',
+            category: productInfo.category,
+            adjustable: productInfo.adjustable,
+            customizable: productInfo.customizable,
+            notes: productInfo.notes
+          },
+          customPrompts
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+
+      setImgStep('search', 'done', `${data.competitorCount || 0} Etsy results`);
+      setImgStep('analyze', 'done', 'Analysis complete');
+      setImgStep('generate', 'done', 'Listing generated!');
+
+      if (data.competitorReport) {
+        document.getElementById('img-report-content').textContent = data.competitorReport;
+        report.classList.remove('hidden');
+      }
+
+      useBeans(1);
+      saveHistory({ product_name: productInfo.product_name, text: data.listing, type: 'copy' });
+      refreshDashboard();
+      showResults([{ product: { product_name: productInfo.product_name }, text: data.listing }]);
+
+    } catch (err) {
+      setImgStep('generate', '', 'Failed: ' + err.message);
+      alert('Generation failed: ' + err.message);
+      document.getElementById('img-review-section').classList.remove('hidden');
+    }
+  });
+
+  function setImgStep(step, state, statusText) {
+    const e = document.getElementById('img-step-' + step);
+    const s = document.getElementById('img-step-' + step + '-status');
+    if (e) e.className = 'smart-step' + (state ? ' ' + state : '');
+    if (s && statusText !== undefined) s.textContent = statusText;
+  }
+
+  document.getElementById('img-toggle-report')?.addEventListener('click', () => {
+    const body = document.getElementById('img-report-body');
+    const icon = document.querySelector('#img-toggle-report .smart-toggle-report i');
+    body.classList.toggle('hidden');
+    if (icon) { icon.classList.toggle('fa-chevron-up'); icon.classList.toggle('fa-chevron-down'); }
+  });
+
+  // ========== 结果展示 ==========
+  let lastResults = [];
+  let resultExportSelected = [];
+
+  function showResults(results) {
+    lastResults = results.filter(r => !r.error);
+    resultExportSelected = lastResults.map(() => true);
+    // results shown
+    el.resultContent.innerHTML =
+      `<div class="result-toolbar">
+        <button class="btn-toggle-all" onclick="toggleAllProducts(true)"><i class="fas fa-chevron-down"></i> Expand All</button>
+        <button class="btn-toggle-all" onclick="toggleAllProducts(false)"><i class="fas fa-chevron-up"></i> Collapse All</button>
+        <button class="btn-export-results" onclick="exportResultsCsv()"><i class="fas fa-download"></i> Export Selected as CSV (<span id="export-count">${lastResults.length}</span>)</button>
+      </div>` +
+      results.map((item, i) => {
+        if (item.error) return `<div class="result-block"><div class="block-header"><span class="block-icon">❌</span><span class="block-label">Failed: ${escapeHtml(item.product.product_name)}</span></div><div class="block-content" style="color:#e53e3e;">${escapeHtml(item.error)}</div></div>`;
+        const realIdx = lastResults.indexOf(item);
+        return buildResultHtml(item, i, realIdx);
+      }).join('');
+    el.resultSection.classList.remove('hidden');
+    el.resultSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  window.toggleExportSelect = function(realIdx, event) {
+    event.stopPropagation();
+    resultExportSelected[realIdx] = !resultExportSelected[realIdx];
+    const cb = document.getElementById('export-cb-' + realIdx);
+    if (cb) cb.checked = resultExportSelected[realIdx];
+    const c = document.getElementById('export-count');
+    if (c) c.textContent = resultExportSelected.filter(Boolean).length;
+  };
+
+  window.toggleProductResult = function(index) {
+    const body = document.getElementById('product-body-' + index);
+    const icon = document.getElementById('product-toggle-' + index);
+    if (body.classList.contains('hidden')) { body.classList.remove('hidden'); icon.classList.replace('fa-chevron-right', 'fa-chevron-down'); }
+    else { body.classList.add('hidden'); icon.classList.replace('fa-chevron-down', 'fa-chevron-right'); }
+  };
+
+  window.toggleAllProducts = function(expand) {
+    document.querySelectorAll('.product-body').forEach(el => el.classList.toggle('hidden', !expand));
+    document.querySelectorAll('.product-toggle-icon').forEach(icon => {
+      if (expand) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+      else icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+    });
+  };
+
+  window.exportResultsCsv = function() {
+    const selected = lastResults.filter((_, i) => resultExportSelected[i]);
+    if (selected.length === 0) { alert('No products selected for export'); return; }
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
+    selected.forEach(item => {
+      const s = parseSections(item.text);
+      const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
+      while (titles.length < 3) titles.push('');
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
+      rows.push([item.product.product_name, titles[0], titles[1], titles[2], s.description, tags, s.attributes]);
+    });
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'listingpaw_results_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+  };
+
+  function buildResultHtml(item, index, realIdx) {
+    const s = parseSections(item.text);
+    const name = item.product.product_name;
+    let html = `<div class="result-product">
+      <div class="result-product-header" onclick="toggleProductResult(${index})">
+        <input type="checkbox" id="export-cb-${realIdx}" class="export-checkbox" ${resultExportSelected[realIdx] ? 'checked' : ''} onclick="toggleExportSelect(${realIdx}, event)">
+        <i id="product-toggle-${index}" class="fas fa-chevron-down product-toggle-icon"></i>
+        <h2 class="result-product-title">📦 ${escapeHtml(name)}</h2>
+      </div>
+      <div id="product-body-${index}" class="product-body">`;
+    if (s.title) html += `<div class="result-block"><div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy Titles</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.title)}</div></div>`;
+    if (s.description) html += `<div class="result-block"><div class="block-header"><span class="block-icon">📝</span><span class="block-label">Description</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.description)}</div></div>`;
+    if (s.tags) {
+      const tagLine = s.tags.replace(/\n/g, ' ').trim();
+      html += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
+    }
+    if (s.attributes) html += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
+    html += '</div></div>';
+    return html;
+  }
+
+  function parseSections(text) {
+    const sections = { title: '', description: '', tags: '', attributes: '' };
+    const markers = [{ key: 'title', regex: /【标题】/i }, { key: 'description', regex: /【描述】/i }, { key: 'tags', regex: /【标签】/i }, { key: 'attributes', regex: /【属性】/i }];
+    const positions = markers.map(m => { const match = text.match(m.regex); return { key: m.key, index: match ? match.index : -1 }; }).filter(p => p.index >= 0).sort((a, b) => a.index - b.index);
+    for (let i = 0; i < positions.length; i++) {
+      const start = positions[i].index + text.match(markers.find(m => m.key === positions[i].key).regex)[0].length;
+      const end = i + 1 < positions.length ? positions[i + 1].index : text.length;
+      sections[positions[i].key] = text.slice(start, end).trim();
+    }
+    if (positions.length === 0) sections.description = text;
+    return sections;
+  }
+
+  function formatText(text) { return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); }
+  function escapeHtml(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function renderTags(tagLine) { return tagLine.split(/[,，]/).map(t => t.trim()).filter(Boolean).map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join(''); }
+
+  window.copyText = function(btn) {
+    const content = btn.closest('.result-block').querySelector('.copyable');
+    const text = content.innerText || content.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent; btn.textContent = '✅ Copied'; setTimeout(() => btn.textContent = orig, 2000);
+    }).catch(() => {
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      const orig = btn.textContent; btn.textContent = '✅ Copied'; setTimeout(() => btn.textContent = orig, 2000);
+    });
+  };
+
+  // ========== 历史记录 ==========
+  let historySelected = new Set();
+  let historyViewOpen = new Set();
+
+  function renderHistory() {
+    const history = getHistory();
+    const list = document.getElementById('history-list');
+    const empty = document.getElementById('history-empty');
+    if (history.length === 0) { 
+      list.innerHTML = ''; 
+      empty.classList.remove('hidden');
+      // 添加生成测试数据按钮
+      if (!document.getElementById('btn-generate-test-data')) {
+        const testBtn = document.createElement('button');
+        testBtn.id = 'btn-generate-test-data';
+        testBtn.className = 'btn-secondary';
+        testBtn.style.marginTop = '20px';
+        testBtn.innerHTML = '<i class="fas fa-flask"></i> Generate Test Data';
+        testBtn.onclick = generateTestHistoryData;
+        empty.appendChild(testBtn);
+      }
+      return; 
+    }
+    empty.classList.add('hidden');
+    const hasSelected = historySelected.size > 0;
+    list.innerHTML =
+      `<div class="history-toolbar">
+        <label class="history-select-all"><input type="checkbox" ${historySelected.size === history.length ? 'checked' : ''} onchange="historyToggleAll(this.checked)"> Select All (${history.length})</label>
+        <div class="history-toolbar-right">
+          <span class="history-selected-count">${historySelected.size} selected</span>
+          <button class="btn-export" onclick="exportHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-download"></i> Export CSV</button>
+          <button class="btn-history-remove" onclick="removeHistorySelected()" ${hasSelected ? '' : 'disabled'}><i class="fas fa-trash-alt"></i> Remove</button>
+        </div>
+      </div>` +
+      history.map((item, i) => {
+        const date = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isSelected = historySelected.has(i);
+        const isOpen = historyViewOpen.has(i);
+        return `<div class="history-item ${isSelected ? 'history-item-selected' : ''}">
+          <div class="history-item-row">
+            <input type="checkbox" class="history-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();historyToggleSelect(${i})">
+            <div class="history-item-toggle" onclick="historyToggleView(${i})"><i class="fas ${isOpen ? 'fa-chevron-down' : 'fa-chevron-right'} history-toggle-icon"></i></div>
+            <span class="history-item-name" onclick="historyToggleView(${i})">${typeIcon + ' ' + escapeHtml(item.product_name)}</span>
+            <span class="history-item-date">${date}</span>
+          </div>
+          <div class="history-item-body ${isOpen ? '' : 'hidden'}" id="history-body-${i}"></div>
+        </div>`;
+      }).join('');
+  }
+
+  window.historyToggleSelect = function(i) { if (historySelected.has(i)) historySelected.delete(i); else historySelected.add(i); renderHistory(); };
+  window.historyToggleAll = function(checked) { const h = getHistory(); historySelected = checked ? new Set(h.map((_, i) => i)) : new Set(); renderHistory(); };
+
+  window.historyToggleView = function(index) {
+    const body = document.getElementById('history-body-' + index);
+    if (!body) return;
+    if (historyViewOpen.has(index)) {
+      body.classList.add('hidden'); historyViewOpen.delete(index);
+      const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
+      if (icon) icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+    } else {
+      historyViewOpen.add(index);
+      const history = getHistory(); const item = history[index]; if (!item) return;
+      const s = parseSections(item.text); let content = '';
+      if (s.title) content += `<div class="result-block"><div class="block-header"><span class="block-icon">🏷️</span><span class="block-label">Etsy Titles</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.title)}</div></div>`;
+      if (s.description) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📝</span><span class="block-label">Description</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.description)}</div></div>`;
+      if (s.tags) {
+        const tagLine = s.tags.replace(/\n/g, ' ').trim();
+        content += `<div class="result-block"><div class="block-header"><span class="block-icon">🔖</span><span class="block-label">Tags</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable"><div class="tags-display">${renderTags(tagLine)}</div><div class="tags-raw">${escapeHtml(tagLine)}</div></div></div>`;
+      }
+      if (s.attributes) content += `<div class="result-block"><div class="block-header"><span class="block-icon">📋</span><span class="block-label">Attributes</span><button class="copy-btn" onclick="copyText(this)">📋 Copy</button></div><div class="block-content copyable">${formatText(s.attributes)}</div></div>`;
+      // Show image if type is image
+      if (item.type === 'image' && item.imageUrl) {
+        content += '<div class="history-image-preview"><img src="' + item.imageUrl + '" alt="Generated Image"><a href="' + item.imageUrl + '" download class="whitebg-dl-btn" style="margin-top:8px;display:inline-block;"><i class="fas fa-download"></i> Download</a></div>';
+      }
+      body.innerHTML = content; body.classList.remove('hidden');
+      const row = body.previousElementSibling; const icon = row.querySelector('.history-toggle-icon');
+      if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+    }
+  };
+
+  window.removeHistorySelected = function() {
+    if (historySelected.size === 0) return;
+    if (!confirm(`Remove ${historySelected.size} item(s)?`)) return;
+    const h = getHistory(); const remaining = h.filter((_, i) => !historySelected.has(i));
+    localStorage.setItem(getUserKey('history'), JSON.stringify(remaining));
+    historySelected.clear(); historyViewOpen.clear(); renderHistory();
+  };
+
+  window.exportHistorySelected = function() {
+    if (historySelected.size === 0) { alert('No items selected'); return; }
+    const history = getHistory();
+    const selected = [...historySelected].sort((a, b) => a - b).map(i => history[i]).filter(Boolean);
+    const rows = [['Product Name', 'Title 1', 'Title 2', 'Title 3', 'Description', 'Tags', 'Attributes']];
+    selected.forEach(item => {
+      const s = parseSections(item.text);
+      const titles = s.title.split('\n').map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim()).filter(Boolean).slice(0, 3);
+      while (titles.length < 3) titles.push('');
+      const tags = s.tags.replace(/\n/g, ' ').split(/[,，]/).map(t => t.trim()).filter(Boolean).join(', ');
+      rows.push([item.product_name, titles[0], titles[1], titles[2], s.description, tags, s.attributes]);
+    });
+    const csv = rows.map(row => row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'listingpaw_history_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+  };
+
+  // ========== 工具 ==========
+  function showLoading(show) { el.loading.classList.toggle('hidden', !show); if (show) el.resultSection.classList.add('hidden'); }
+
+  el.backBtn.addEventListener('click', () => {
+    el.resultSection.classList.add('hidden');
+    var activeMode = document.querySelector('.mode-btn.active')?.id?.replace('mode-','');
+    if (activeMode) delete lastModeResults[activeMode];
+    // Reset image upload state
+    if (el.modeImage.classList.contains('active')) {
+      window._uploadedImages = [];
+      document.getElementById('img-drop-zone').style.display = '';
+      document.getElementById('img-preview-area').classList.add('hidden');
+      document.getElementById('img-identify-section').classList.add('hidden');
+      document.getElementById('img-identify-progress').classList.add('hidden');
+      document.getElementById('img-review-section').classList.add('hidden');
+      document.getElementById('img-progress').classList.add('hidden');
+      document.getElementById('img-report').classList.add('hidden');
+    }
+    // Reset smart generate state
+    if (el.modeSmart.classList.contains('active')) {
+      document.getElementById('smart-progress').classList.add('hidden');
+      document.getElementById('smart-sources').classList.add('hidden');
+      document.getElementById('smart-report').classList.add('hidden');
+    }
+    // Reset white bg state
+    if (el.modeWhitebg.classList.contains('active')) {
+      window._whitebgImage = null;
+      document.getElementById('whitebg-drop-zone').style.display = '';
+      document.getElementById('whitebg-preview').classList.add('hidden');
+      document.getElementById('whitebg-loading').classList.add('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    }
+    if (el.modeImage.classList.contains('active')) switchMode('image');
+    else if (el.modeSmart.classList.contains('active')) switchMode('smart');
+    else if (el.modeWhitebg.classList.contains('active')) switchMode('whitebg');
+    else if (el.modeEcom.classList.contains('active')) switchMode('ecom');
+    else if (el.modeCsv.classList.contains('active')) switchMode('csv');
+    else if (el.modeHistory.classList.contains('active')) switchMode('history');
+    else switchMode('image');
+    if (csvProducts.length > 0) { el.csvPreview.classList.remove('hidden'); el.generateSection.classList.remove('hidden'); }
+  });
+
+  // ========== 全局上传函数（用于 HTML inline onclick） ==========
+  window.handleImageFiles = handleImageFiles;
+
+  window._handleWhitebgFile = function(inp) {
+    var file = inp.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Ratio selector
+  document.querySelectorAll('.ratio-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var plan = getPlan();
+      
+      if (btn.classList.contains('pro-only') && !true) { alert('This ratio is available for Pro plans.'); return; }
+      document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      window._whitebgRatio = btn.dataset.ratio;
+    });
+  });
+
+  // Generate Another whitebg
+  var reuploadWhitebg = document.getElementById('btn-reupload-whitebg');
+  if (reuploadWhitebg) reuploadWhitebg.addEventListener('click', function() {
+    window._whitebgImage = null;
+    document.getElementById('whitebg-drop-zone').style.display = '';
+    document.getElementById('whitebg-preview').classList.add('hidden');
+    document.getElementById('whitebg-results').classList.add('hidden');
+  });
+
+  // Generate whitebg
+  document.getElementById('btn-generate-whitebg').addEventListener('click', async function() {
+    if (!window._whitebgImage) { alert('Please upload an image first'); return; }
+    if (getBeans() < 4) { alert('Monthly limit reached.'); return; }
+    var plan = getPlan();
+    var loading = document.getElementById('whitebg-loading');
+    var results = document.getElementById('whitebg-results');
+    loading.classList.remove('hidden'); results.classList.add('hidden');
+    try {
+      var res = await fetch('/api/white-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._whitebgImage, plan: plan, ratio: window._whitebgRatio }) });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Generation failed');
+      useBeans(1, 'Image to Copy'); refreshDashboard();
+      
+      var grid = document.getElementById('whitebg-results-grid');
+      grid.innerHTML = data.images.map(function(img, i) {
+        var wm = true ? '' : '';
+        var dl = true ? '<a href="' + img.url + '" download="product_' + img.label.replace(/\s/g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> HD Download</a>' : '<span class="whitebg-dl-btn disabled"><i class="fas fa-lock"></i> PRO for HD</span>';
+        return '<div class="whitebg-result-card"><div class="' + wm + '"><img src="' + img.url + '" alt="' + img.label + '"></div><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions">' + dl + '</div></div>';
+      }).join('');
+      results.classList.remove('hidden');
+    } catch (err) { alert('White BG failed: ' + err.message); }
+    finally { loading.classList.add('hidden'); }
+  });
+  window.clickImgInput = function() {
+    var inp = document.getElementById('img-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  window.onImgInputChange = function(inp) {
+    if (inp.files.length) handleImageFiles(inp.files);
+  };
+
+  window.clickWhitebgInput = function() {
+    var inp = document.getElementById('whitebg-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  window.onWhitebgInputChange = function(inp) {
+    var file = inp.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10MB)'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.clickCsvInput = function() {
+    var inp = document.getElementById('csv-input');
+    inp.value = '';
+    inp.click();
+  };
+
+  // ========== 全局上传函数 ==========
+  window.clickImgInput = function() { var i = document.getElementById('img-input'); i.value = ''; i.click(); };
+  window.onImgInputChange = function(i) { if (i.files.length) handleImageFiles(i.files); };
+  window.clickWhitebgInput = function() { var i = document.getElementById('whitebg-input'); i.value = ''; i.click(); };
+  window.onWhitebgInputChange = function(i) {
+    var f = i.files[0]; if (!f || !f.type.startsWith('image/')) return;
+    if (f.size > 10*1024*1024) { alert('Image too large (max 10MB)'); return; }
+    var r = new FileReader(); r.onload = function(e) {
+      window._whitebgImage = e.target.result;
+      document.getElementById('whitebg-original-img').src = window._whitebgImage;
+      document.getElementById('whitebg-drop-zone').style.display = 'none';
+      document.getElementById('whitebg-preview').classList.remove('hidden');
+      document.getElementById('whitebg-results').classList.add('hidden');
+    }; r.readAsDataURL(f);
+  };
+  window.clickCsvInput = function() { var i = document.getElementById('csv-input'); i.value = ''; i.click(); };
+
+  // ========== 初始化 ==========
+  updateLandingNav();
+
+  // ========== E-commerce Suite ==========
+  window._ecomImages = [];
+  window._ecomAbort = null;
+
+  window._handleEcomFiles = function(files) {
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f.type.startsWith('image/')) continue;
+      if (f.size > 10485760) { alert('Image too large (max 10MB)'); continue; }
+      if (window._ecomImages.length >= 5) { alert('Max 5 images'); break; }
+      (function(ff) {
+        var r = new FileReader();
+        r.onload = function(e) { window._ecomImages.push({ file: ff, dataUrl: e.target.result }); window._renderEcomPreviews(); };
+        r.readAsDataURL(ff);
+      })(f);
+    }
+  };
+
+  window._renderEcomPreviews = function() {
+    var dz = document.getElementById('ecom-drop-zone'), pa = document.getElementById('ecom-preview-area'), pg = document.getElementById('ecom-preview-grid'), ef = document.getElementById('ecom-fields');
+    if (!window._ecomImages || !window._ecomImages.length) { if (pa) pa.classList.add('hidden'); if (ef) ef.classList.add('hidden'); if (dz) dz.style.display = ''; return; }
+    if (dz) dz.style.display = 'none'; if (pa) pa.classList.remove('hidden'); if (ef) ef.classList.remove('hidden');
+    if (pg) { var h = ''; for (var i = 0; i < window._ecomImages.length; i++) { h += '<div class="img-thumb"><img src="' + window._ecomImages[i].dataUrl + '"><button class="img-thumb-remove" onclick="window._ecomImages.splice(' + i + ',1);window._renderEcomPreviews()"><i class="fas fa-xmark"></i></button></div>'; } pg.innerHTML = h; }
+  };
+
+  var btnResetEcom = document.getElementById('btn-reset-ecom');
+  if (btnResetEcom) btnResetEcom.onclick = function() { window._ecomImages = []; window._renderEcomPreviews(); var l = document.getElementById('ecom-loading'); if (l) l.classList.add('hidden'); var r = document.getElementById('ecom-results'); if (r) r.classList.add('hidden'); };
+
+  var btnStopEcom = document.getElementById('btn-stop-ecom');
+  if (btnStopEcom) btnStopEcom.onclick = function() { if (window._ecomAbort) window._ecomAbort.abort(); var l = document.getElementById('ecom-loading'); if (l) l.classList.add('hidden'); var ef = document.getElementById('ecom-fields'); if (ef) ef.classList.remove('hidden'); };
+
+  var btnReuploadEcom = document.getElementById('btn-reupload-ecom');
+  if (btnReuploadEcom) btnReuploadEcom.onclick = function() { window._ecomImages = []; window._renderEcomPreviews(); var r = document.getElementById('ecom-results'); if (r) r.classList.add('hidden'); };
+
+  var btnGenerateEcom = document.getElementById('btn-generate-ecom');
+  if (btnGenerateEcom) btnGenerateEcom.onclick = async function() {
+    if (!window._ecomImages.length) { alert('Upload at least one image'); return; }
+    if (!canGenerate()) { alert('Not enough beans!'); return; }
+    var loading = document.getElementById('ecom-loading'), results = document.getElementById('ecom-results'), fields = document.getElementById('ecom-fields');
+    if (loading) loading.classList.remove('hidden'); if (results) results.classList.add('hidden'); if (fields) fields.classList.add('hidden');
+    try {
+      window._ecomAbort = new AbortController();
+      var pd = document.getElementById('ecom-product-desc'); var productDesc = pd ? pd.value.trim() : '';
+      var customPrompt = (document.getElementById('ecom-custom-prompt')?.value || '').trim();
+      var imageCount = document.getElementById('ecom-count')?.value || '4';
+      var ecomRatioBtn = document.querySelector('#ecom-ratio-pills .ratio-pill.active');
+      var ecomSize = ecomRatioBtn ? ecomRatioBtn.dataset.size : '2K';
+      var res = await fetch('/api/ecom-suite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: window._ecomImages[0].dataUrl, productDesc: productDesc, customPrompt: customPrompt, imageCount: imageCount, size: ecomSize }), signal: window._ecomAbort.signal });
+      var data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
+      useBeans(data.images.length, 'E-com Suite (' + data.images.length + ' images)'); refreshDashboard(); updateLandingNav();
+      data.images.forEach(function(img) { saveHistory({ product_name: 'E-com: ' + img.label, text: '', imageUrl: img.url, type: 'ecom' }); });
+      var grid = document.getElementById('ecom-results-grid');
+      if (grid) grid.innerHTML = data.images.map(function(img) { return '<div class="whitebg-result-card"><img src="' + img.url + '"><div class="whitebg-card-label">' + img.label + '</div><div class="whitebg-card-actions"><a href="' + img.url + '" download="ecom_' + img.label.replace(/ /g, '_') + '.png" class="whitebg-dl-btn"><i class="fas fa-download"></i> Download</a></div></div>'; }).join('');
+      if (results) results.classList.remove('hidden');
+    } catch (err) { if (err.name !== 'AbortError') alert('E-com Suite failed: ' + err.message); var ef2 = document.getElementById('ecom-fields'); if (ef2) ef2.classList.remove('hidden'); }
+    finally { if (loading) loading.classList.add('hidden'); }
+  };
+
+
+
+  // ========== Ratio Pills ==========
+  document.querySelectorAll('.ratio-pills').forEach(function(container) {
+    container.querySelectorAll('.ratio-pill').forEach(function(pill) {
+      pill.onclick = function() {
+        container.querySelectorAll('.ratio-pill').forEach(function(p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+      };
+    });
+  });
+
+  // ========== AI Write Selling Points ==========
+  var btnAiSelling = document.getElementById('btn-ai-selling-points');
+  if (btnAiSelling) btnAiSelling.onclick = async function() {
+    var descEl = document.getElementById('ecom-product-desc');
+    var spEl = document.getElementById('ecom-selling-points');
+    if (!spEl) return;
+    var productName = descEl ? descEl.value.trim() : '';
+    if (!productName) { alert('Please enter a product description first'); return; }
+    btnAiSelling.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btnAiSelling.disabled = true;
+    try {
+      var bodyData = { productName: productName };
+      if (window._ecomImages && window._ecomImages.length > 0) bodyData.imageBase64 = window._ecomImages[0].dataUrl;
+      var res = await fetch('/api/ai-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData)
+      });
+      var data = await res.json();
+      if (data.success && data.text) {
+        spEl.value = data.text;
+      } else {
+        alert('AI Write failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('AI Write failed: ' + e.message);
+    }
+    btnAiSelling.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI Write';
+    btnAiSelling.disabled = false;
+  };
+
+  // ========== Batch Download ==========
+  function batchDownload(gridId) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+    var links = grid.querySelectorAll('a[download]');
+    links.forEach(function(a, i) {
+      setTimeout(function() { a.click(); }, i * 500);
+    });
+  }
+
+  var btnDlAllWhitebg = document.getElementById('btn-download-all-whitebg');
+  if (btnDlAllWhitebg) btnDlAllWhitebg.onclick = function() { batchDownload('whitebg-results-grid'); };
+
+  var btnDlAllEcom = document.getElementById('btn-download-all-ecom');
+  if (btnDlAllEcom) btnDlAllEcom.onclick = function() { batchDownload('ecom-results-grid'); };
+
+  // ========== Avatar Initials ==========
+  function getInitial() {
+    var user = getUser();
+    if (!user) return '?';
+    if (user.name) return user.name.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return '?';
+  }
+  function updateAvatars() {
+    document.querySelectorAll('.user-avatar-btn').forEach(function(btn) {
+      var initial = getInitial();
+      btn.innerHTML = '<span class="avatar-initial">' + initial + '</span>';
+    });
+  }
+
+  // ========== Generate Test History Data ==========
+  window.generateTestHistoryData = function() {
+    const testData = [
+      {
+        product_name: 'Handmade Silver Moon Necklace',
+        text: '🌙✨ Celestial Beauty | 40% OFF | Free Shipping\n\nSometimes the smallest things carry the biggest meaning. This delicate silver moon necklace captures the magic of starlit nights...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 0.5).toISOString()
+      },
+      {
+        product_name: 'Personalized Birthstone Ring',
+        text: '💎🎁 Perfect Gift | New Arrival | Ready to Ship\n\nCelebrate her special day with a ring that tells her story. Each birthstone carries ancient wisdom...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 1.2).toISOString()
+      },
+      {
+        product_name: 'Vintage Pearl Earrings Set',
+        text: '🦪✨ Timeless Elegance | Limited Edition\n\nPearls have adorned royalty for centuries. These vintage-inspired earrings bring that same regal charm...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 2.5).toISOString()
+      },
+      {
+        product_name: 'Custom Engraved Bracelet',
+        text: '💫 Personal Touch | Best Seller | Gift Ready\n\nWords have power. When engraved on sterling silver, they become treasures...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 3.1).toISOString()
+      },
+      {
+        product_name: 'Crystal Healing Pendant',
+        text: '🔮 Spiritual Wellness | Handmade | Free Gift Box\n\nMore than jewelry, this crystal pendant is a companion for your journey...',
+        type: 'copy',
+        date: new Date(Date.now() - 86400000 * 4.8).toISOString()
+      }
+    ];
+    
+    testData.forEach(item => saveHistory(item));
+    renderHistory();
+    alert('✅ Generated 5 test history items!');
+  };
+
+  // ========== Init ==========
+  const initUser = getUser();
+  updateAvatars();
+  if (initUser) showPage('dashboard');
+  else showPage('landing');
+});
